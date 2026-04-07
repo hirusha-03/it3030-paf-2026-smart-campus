@@ -80,7 +80,8 @@ public class Booking {
             name = "resource_booking",
             joinColumns = @JoinColumn(name = "BookingID")
     )
-    private List<String> resources = new ArrayList<>();
+    @Column(name = "ResourceID")
+    private List<Long> resourceIds;
     //end of temporary change
 
     @PrePersist
