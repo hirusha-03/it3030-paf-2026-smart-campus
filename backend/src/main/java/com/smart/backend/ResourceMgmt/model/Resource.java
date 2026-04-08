@@ -51,8 +51,9 @@ public class Resource {
     private LocalTime availableTo = LocalTime.of(18, 0);
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
+    @Column(length = 20)
     private ResourceStatus status = ResourceStatus.ACTIVE;
+
 
     @Column(length = 500)
     private String imageUrl;
