@@ -36,6 +36,6 @@ jobs:
 
       - name: Build Frontend
         run: |
-          cd frontend
+          cd frontend/smart-campus
           npm install
           npm run build
