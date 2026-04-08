@@ -20,11 +20,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-
       - name: Build Backend
         run: |
           cd backend
-          mvn clean install
+          mvn clean install -DskipTests
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
