@@ -31,17 +31,18 @@ public class UserServiceIMPL implements UserService {
             user.setUserPassword(signupRequest.getUserPassword());
             user.setUserFirstName(signupRequest.getUserFirstName());
             user.setUserLastName(signupRequest.getUserLastName());
+            user.setContactNumber(signupRequest.getContactNumber());
 
             Set<Role> userRoles = new HashSet<>();
 
-            if(signupRequest.getUserRole().equalsIgnoreCase("user")){
-                Role role = new Role();
-                role.setRoleName(signupRequest.getUserRole());
-                userRoles.add(role);
-            }else{
-                throw new RuntimeException("No roles like this");
+            String requestedRole = signupRequest.getUserRole();
+            Role role = roleRepo.findByRoleName(requestedRole); // ← fetch from DB
+
+            if (role == null) {
+                throw new RuntimeException("No role found: " + requestedRole);
             }
 
+            userRoles.add(role);
             user.setRole(userRoles);
             return userRepo.save(user);
         }
