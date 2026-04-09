@@ -1,5 +1,6 @@
 package com.smart.backend.TicketMgmt.model;
 
+import com.smart.backend.authentication.entity.Users;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -18,14 +19,14 @@ public class Comment {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private User user;
+    private Users user;
 
     private LocalDateTime timestamp;
 
     // Constructors
     public Comment() {}
 
-    public Comment(String message, Ticket ticket, User user) {
+    public Comment(String message, Ticket ticket, Users user) {
         this.message = message;
         this.ticket = ticket;
         this.user = user;
@@ -39,8 +40,8 @@ public class Comment {
     public void setMessage(String message) { this.message = message; }
     public Ticket getTicket() { return ticket; }
     public void setTicket(Ticket ticket) { this.ticket = ticket; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public Users getUser() { return user; }
+    public void setUser(Users user) { this.user = user; }
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 }
