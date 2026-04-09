@@ -1,20 +1,8 @@
 package com.smart.backend.BookingMgmt.model;
 
-import jakarta.persistence.CollectionTable;
-//import com.smart.backend.ResourceMgmt.model.Resource;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import com.smart.backend.ResourceMgmt.model.Resource;
+import com.smart.backend.authentication.entity.Users;
+import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -61,28 +49,18 @@ public class Booking {
     @Column(name = "rejc_reason", length = 500)
     private String rejectionReason;
 
-    @Column(name = "UserID", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "UserID")
+    private Users user;
 
-    //commenting out for now, will add back when we have the resource entity ready
-    // @ManyToMany
-    // @JoinTable(
-    //         name = "Resource_Booking",
-    //         joinColumns = @JoinColumn(name = "BookingID"),
-    //         inverseJoinColumns = @JoinColumn(name = "ResourceID")
-    // )
-    // @Builder.Default
-    // private List<Resource> resources = new ArrayList<>();
-
-    //changing to a simple list of resource names for now, will switch back to the entity once we have it ready
-    @ElementCollection
-    @CollectionTable(
+    @ManyToMany
+    @JoinTable(
             name = "resource_booking",
-            joinColumns = @JoinColumn(name = "BookingID")
+            joinColumns = @JoinColumn(name = "BookingID"),
+            inverseJoinColumns = @JoinColumn(name = "ResourceID")
     )
-    @Column(name = "ResourceID")
-    private List<Long> resourceIds;
-    //end of temporary change
+    @Builder.Default
+    private List<Resource> resources = new ArrayList<>();
 
     @PrePersist
     public void setDefaultStatus() {

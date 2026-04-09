@@ -7,6 +7,7 @@ import com.smart.backend.authentication.repo.RoleRepo;
 import com.smart.backend.authentication.repo.UserRepo;
 import com.smart.backend.authentication.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -21,6 +22,9 @@ public class UserServiceIMPL implements UserService {
     @Autowired
     private RoleRepo roleRepo;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     @Override
     public Users registerNewUser(SignupRequest signupRequest) {
@@ -28,7 +32,7 @@ public class UserServiceIMPL implements UserService {
         if(!userRepo.existsByUserName(signupRequest.getUserName())){
             Users user = new Users();
             user.setUserName(signupRequest.getUserName());
-            user.setUserPassword(signupRequest.getUserPassword());
+            user.setUserPassword(getEncodedPassword(signupRequest.getUserPassword()));
             user.setUserFirstName(signupRequest.getUserFirstName());
             user.setUserLastName(signupRequest.getUserLastName());
             user.setContactNumber(signupRequest.getContactNumber());
@@ -68,7 +72,7 @@ public class UserServiceIMPL implements UserService {
         if (!userRepo.existsByUserName("admin123")) {
             Users user = new Users();
             user.setUserName("admin123");
-            user.setUserPassword("admin@123");
+            user.setUserPassword(getEncodedPassword("admin@123"));
             user.setUserFirstName("Tashen");
             user.setUserLastName("Chamika");
             user.setContactNumber("01236547");
@@ -83,7 +87,7 @@ public class UserServiceIMPL implements UserService {
         if (!userRepo.existsByUserName("user123")) {
             Users user = new Users();
             user.setUserName("user123");
-            user.setUserPassword("user@123");
+            user.setUserPassword(getEncodedPassword("user@123"));
             user.setUserFirstName("Kamal");
             user.setUserLastName("Perera");
             user.setContactNumber("02365478");
@@ -94,6 +98,10 @@ public class UserServiceIMPL implements UserService {
             user.setRole(userRoles);
             userRepo.save(user);
         }
+    }
+
+    public String getEncodedPassword(String password){
+        return passwordEncoder.encode(password);
     }
 }
 
