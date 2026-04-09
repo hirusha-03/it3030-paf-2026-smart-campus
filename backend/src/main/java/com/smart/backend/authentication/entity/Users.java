@@ -28,9 +28,11 @@ public class Users {
     @Column(name = "contact_number")
     private String contactNumber;
 
+    @Column(name = "email", length = 255, unique = true)  // ✅ Add this
+    private String email;
+
     @Column(name = "username", length = 100, nullable = false)
     private String userName;
-
 
     @Column(name = "password", nullable = false)
     private String userPassword;

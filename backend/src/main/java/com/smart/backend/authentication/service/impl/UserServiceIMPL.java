@@ -31,6 +31,7 @@ public class UserServiceIMPL implements UserService {
 
         if(!userRepo.existsByUserName(signupRequest.getUserName())){
             Users user = new Users();
+            user.setEmail(signupRequest.getEmail());
             user.setUserName(signupRequest.getUserName());
             user.setUserPassword(getEncodedPassword(signupRequest.getUserPassword()));
             user.setUserFirstName(signupRequest.getUserFirstName());
@@ -72,6 +73,7 @@ public class UserServiceIMPL implements UserService {
         if (!userRepo.existsByUserName("admin123")) {
             Users user = new Users();
             user.setUserName("admin123");
+            user.setEmail("admin@gmail.com");
             user.setUserPassword(getEncodedPassword("admin@123"));
             user.setUserFirstName("Tashen");
             user.setUserLastName("Chamika");
@@ -87,6 +89,7 @@ public class UserServiceIMPL implements UserService {
         if (!userRepo.existsByUserName("user123")) {
             Users user = new Users();
             user.setUserName("user123");
+            user.setEmail("user@gmail.com");
             user.setUserPassword(getEncodedPassword("user@123"));
             user.setUserFirstName("Kamal");
             user.setUserLastName("Perera");
