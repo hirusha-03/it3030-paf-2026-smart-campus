@@ -6,9 +6,12 @@ import com.smart.backend.TicketMgmt.model.Comment;
 import com.smart.backend.TicketMgmt.model.Ticket;
 import com.smart.backend.TicketMgmt.repo.CommentRepository;
 import com.smart.backend.TicketMgmt.repo.TicketRepository;
+import com.smart.backend.authentication.entity.Users;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,11 +37,28 @@ public class CommentService {
         return dto;
     }
 
-    private UserSummaryDto mapUserToSummary(com.smart.backend.TicketMgmt.model.User user) {
+    private UserSummaryDto mapUserToSummary(Users user) {
         UserSummaryDto dto = new UserSummaryDto();
-        dto.setId(user.getId());
-        dto.setName(user.getName());
-        dto.setRole(user.getRole());
+        dto.setId((long) user.getUserId());
+        dto.setName(buildDisplayName(user));
+        dto.setRole(getPrimaryRoleName(user));
         return dto;
+    }
+
+    private String getPrimaryRoleName(Users user) {
+        return user.getRole() == null || user.getRole().isEmpty()
+                ? null
+                : user.getRole().stream().filter(Objects::nonNull).findFirst().map(r -> r.getRoleName()).orElse(null);
+    }
+
+    private String buildDisplayName(Users user) {
+        String firstName = user.getUserFirstName();
+        String lastName = user.getUserLastName();
+        if (firstName != null && !firstName.isBlank()) {
+            return (lastName != null && !lastName.isBlank())
+                    ? firstName + " " + lastName
+                    : firstName;
+        }
+        return user.getUserName();
     }
 }

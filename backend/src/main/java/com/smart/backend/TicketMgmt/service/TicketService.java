@@ -1,12 +1,20 @@
 package com.smart.backend.TicketMgmt.service;
 
 import com.smart.backend.TicketMgmt.dto.*;
-import com.smart.backend.TicketMgmt.enums.Role;
-import com.smart.backend.TicketMgmt.model.*;
-import com.smart.backend.TicketMgmt.repo.*;
+import com.smart.backend.TicketMgmt.model.Attachment;
+import com.smart.backend.TicketMgmt.model.Comment;
+import com.smart.backend.TicketMgmt.model.Ticket;
+import com.smart.backend.TicketMgmt.repo.AttachmentRepository;
+import com.smart.backend.TicketMgmt.repo.CommentRepository;
+import com.smart.backend.TicketMgmt.repo.TicketRepository;
+import com.smart.backend.authentication.entity.Role;
+import com.smart.backend.authentication.entity.Users;
+import com.smart.backend.authentication.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -15,17 +23,17 @@ public class TicketService {
     @Autowired
     private TicketRepository ticketRepo;
     @Autowired
-    private UserRepository userRepo;
+    private UserRepo authUserRepo;
     @Autowired
     private CommentRepository commentRepo;
     @Autowired
     private AttachmentRepository attachmentRepo;
 
     public TicketResponseDto createTicket(TicketCreateDto dto, Long userId) {
-        User user = userRepo.findById(userId).orElseThrow();
+        Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         Ticket ticket = new Ticket(dto.getTitle(), dto.getDescription(), dto.getPriority(), user);
         ticket = ticketRepo.save(ticket);
-        // Handle attachments if provided
+
         if (dto.getAttachmentFilePaths() != null) {
             for (String path : dto.getAttachmentFilePaths()) {
                 Attachment att = new Attachment();
@@ -38,9 +46,9 @@ public class TicketService {
     }
 
     public List<TicketResponseDto> getTicketsForUser(Long userId) {
-        User user = userRepo.findById(userId).orElseThrow();
+        Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         List<Ticket> tickets;
-        if (user.getRole() == Role.ADMIN || user.getRole() == Role.TECHNICIAN) {
+        if (hasRole(user, "ADMIN") || hasRole(user, "TECHNICIAN")) {
             tickets = ticketRepo.findAll();
         } else {
             tickets = ticketRepo.findByCreatedBy(user);
@@ -54,16 +62,22 @@ public class TicketService {
     }
 
     public TicketResponseDto assignTicket(Long ticketId, TicketAssignDto dto, Long adminId) {
-        User admin = userRepo.findById(adminId).orElseThrow();
+        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+        if (!hasRole(admin, "ADMIN")) {
+            throw new IllegalStateException("Only ADMIN users can assign tickets");
+        }
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-        User technician = userRepo.findById(dto.getAssignedToId()).orElseThrow();
+        Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
         ticket.setAssignedTo(technician);
         ticket = ticketRepo.save(ticket);
         return mapToResponse(ticket);
     }
 
     public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
-        User tech = userRepo.findById(techId).orElseThrow();
+        Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
+        if (!hasRole(tech, "TECHNICIAN")) {
+            throw new IllegalStateException("Only TECHNICIAN users can update ticket status");
+        }
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
         ticket.setStatus(dto.getStatus());
         ticket = ticketRepo.save(ticket);
@@ -71,7 +85,7 @@ public class TicketService {
     }
 
     public void addComment(Long ticketId, CommentCreateDto dto, Long userId) {
-        User user = userRepo.findById(userId).orElseThrow();
+        Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
         Comment comment = new Comment(dto.getMessage(), ticket, user);
         commentRepo.save(comment);
@@ -97,11 +111,11 @@ public class TicketService {
         return dto;
     }
 
-    private UserSummaryDto mapUserToSummary(User user) {
+    private UserSummaryDto mapUserToSummary(Users user) {
         UserSummaryDto dto = new UserSummaryDto();
-        dto.setId(user.getId());
-        dto.setName(user.getName());
-        dto.setRole(user.getRole());
+        dto.setId((long) user.getUserId());
+        dto.setName(buildDisplayName(user));
+        dto.setRole(getPrimaryRoleName(user));
         return dto;
     }
 
@@ -119,5 +133,28 @@ public class TicketService {
         dto.setId(att.getId());
         dto.setFilePath(att.getFilePath());
         return dto;
+    }
+
+    private boolean hasRole(Users user, String roleName) {
+        return user.getRole() != null && user.getRole().stream()
+                .filter(Objects::nonNull)
+                .anyMatch(role -> roleName.equalsIgnoreCase(role.getRoleName()));
+    }
+
+    private String getPrimaryRoleName(Users user) {
+        return user.getRole() == null || user.getRole().isEmpty()
+                ? null
+                : user.getRole().stream().filter(Objects::nonNull).findFirst().map(Role::getRoleName).orElse(null);
+    }
+
+    private String buildDisplayName(Users user) {
+        String firstName = user.getUserFirstName();
+        String lastName = user.getUserLastName();
+        if (firstName != null && !firstName.isBlank()) {
+            return (lastName != null && !lastName.isBlank())
+                    ? firstName + " " + lastName
+                    : firstName;
+        }
+        return user.getUserName();
     }
 }
