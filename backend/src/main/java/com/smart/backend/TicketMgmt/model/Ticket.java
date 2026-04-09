@@ -1,8 +1,8 @@
 package com.smart.backend.TicketMgmt.model;
 
-
 import com.smart.backend.TicketMgmt.enums.Priority;
 import com.smart.backend.TicketMgmt.enums.TicketStatus;
+import com.smart.backend.authentication.entity.Users;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -32,12 +32,12 @@ public class Ticket {
     // Who created ticket
     @ManyToOne
     @JoinColumn(name = "created_by")
-    private User createdBy;
+    private Users createdBy;
 
     // Assigned technician
     @ManyToOne
     @JoinColumn(name = "assigned_to")
-    private User assignedTo;
+    private Users assignedTo;
 
     // Timestamps
     private LocalDateTime createdAt;
@@ -46,7 +46,7 @@ public class Ticket {
     // Constructors
     public Ticket() {}
 
-    public Ticket(String title, String description, Priority priority, User user) {
+    public Ticket(String title, String description, Priority priority, Users user) {
         this.title = title;
         this.description = description;
         this.priority = priority;
@@ -81,11 +81,11 @@ public class Ticket {
     public Priority getPriority() { return priority; }
     public void setPriority(Priority priority) { this.priority = priority; }
 
-    public User getCreatedBy() { return createdBy; }
-    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+    public Users getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Users createdBy) { this.createdBy = createdBy; }
 
-    public User getAssignedTo() { return assignedTo; }
-    public void setAssignedTo(User assignedTo) { this.assignedTo = assignedTo; }
+    public Users getAssignedTo() { return assignedTo; }
+    public void setAssignedTo(Users assignedTo) { this.assignedTo = assignedTo; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 

@@ -2,7 +2,7 @@ package com.smart.backend.ResourceMgmt.model;
 
 import com.smart.backend.ResourceMgmt.enums.ResourceType;
 import com.smart.backend.ResourceMgmt.enums.ResourceStatus;
-import com.smart.backend.TicketMgmt.model.User;
+import com.smart.backend.authentication.entity.Users;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -63,7 +63,7 @@ public class Resource {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
-    private User createdBy;
+    private Users createdBy;
 
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
