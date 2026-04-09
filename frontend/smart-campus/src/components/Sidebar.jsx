@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { LayoutDashboard, Building2, CalendarRange, Ticket, PieChart, X } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
@@ -23,10 +24,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       
       <nav className="mt-6 px-4 space-y-2">
         {navItems.map((item) => (
-          <a key={item.name} href={item.path} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors text-slate-300 hover:text-white group">
+          <Link key={item.name} to={item.path} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors text-slate-300 hover:text-white group">
             <span className="text-slate-400 group-hover:text-indigo-400">{item.icon}</span>
             <span className="font-medium text-sm">{item.name}</span>
-          </a>
+          </Link>
         ))}
       </nav>
     </aside>
