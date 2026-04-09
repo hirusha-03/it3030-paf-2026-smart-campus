@@ -39,7 +39,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
         String email = oauth2User.getAttribute("email");
-        String name  = oauth2User.getAttribute("name");
+        String firstName = oauth2User.getAttribute("given_name");
+        String lastName = oauth2User.getAttribute("family_name");
 
         // Retrieve mode from session
         String mode = (String) request.getSession().getAttribute("mode");
@@ -65,7 +66,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             Users newUser = new Users();
             newUser.setEmail(email);
             newUser.setUserName(email);
-            newUser.setUserFirstName(name);
+            newUser.setUserFirstName(firstName);
+            newUser.setUserLastName(lastName);
             newUser.setUserPassword("");
             Role userRole = roleRepo.findByRoleName("User");
             Set<Role> userRoles = new HashSet<>();
@@ -104,7 +106,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 Users newUser = new Users();
                 newUser.setEmail(email);
                 newUser.setUserName(email);
-                newUser.setUserFirstName(name);
+                newUser.setUserFirstName(firstName);
+                newUser.setUserLastName(lastName);
                 newUser.setUserPassword("");
                 Role userRole = roleRepo.findByRoleName("User");
                 Set<Role> userRoles = new HashSet<>();
