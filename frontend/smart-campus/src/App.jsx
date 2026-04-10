@@ -3,7 +3,7 @@ import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import HomePage from './pages/HomePage';
 import Tickets from './ticketMgmt/pages/Tickets';
-import BookingForm from './bookings/components/BookingForm';
+import BookingPage from './bookings/pages/BookingPage';
 
 function App() {
   return (
@@ -28,7 +28,7 @@ function App() {
         />
         <Route
           path="/bookings"
-          element={<BookingForm />}
+          element={<BookingPage />}
         />
       </Routes>
     </Router>
