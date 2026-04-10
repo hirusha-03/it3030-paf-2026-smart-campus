@@ -2,27 +2,9 @@ import { useState } from "react";
 import { createBooking } from "../api/bookingApi";
 
 const dummyResources = [
-  {
-    id: 101,
-    name: "Lecture Hall A",
-    location: "Engineering Block - Level 2",
-    capacity: 120,
-    features: ["Projector", "Smart Board", "PA System"],
-  },
-  {
-    id: 102,
-    name: "Meeting Room 1",
-    location: "Administration Wing - Level 1",
-    capacity: 18,
-    features: ["Video Conferencing", "Whiteboard", "AC"],
-  },
-  {
-    id: 103,
-    name: "Computer Lab B",
-    location: "IT Building - Level 3",
-    capacity: 40,
-    features: ["Desktop PCs", "High-Speed Internet", "Projector"],
-  },
+  { id: 101, name: "Lecture Hall A" },
+  { id: 102, name: "Meeting Room 1" },
+  { id: 103, name: "Computer Lab B" },
 ];
 
 const initialFormState = {
@@ -40,7 +22,6 @@ function BookingForm({ onBookingCreated }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const selectedResource = dummyResources.find((resource) => resource.id === formData.resourceIds[0]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -109,33 +90,6 @@ function BookingForm({ onBookingCreated }) {
             Submit a focused booking request by selecting a suitable venue, preferred time slot, and purpose details.
           </p>
         </header>
-
-        <section className="mb-8 grid gap-4 md:grid-cols-3">
-          {dummyResources.map((resource) => {
-            const isSelected = resource.id === formData.resourceIds[0];
-
-            return (
-              <article
-                key={resource.id}
-                className={`rounded-2xl border bg-white p-5 shadow-sm transition ${
-                  isSelected ? "border-indigo-300 ring-2 ring-indigo-100" : "border-slate-200"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Resource #{resource.id}</p>
-                <h2 className="mt-2 text-lg font-bold text-slate-900">{resource.name}</h2>
-                <p className="mt-1 text-sm text-slate-600">{resource.location}</p>
-                <p className="mt-3 text-sm font-medium text-slate-700">Capacity: {resource.capacity}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {resource.features.map((feature) => (
-                    <span key={feature} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-              </article>
-            );
-          })}
-        </section>
 
         <section className="mx-auto w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6">
