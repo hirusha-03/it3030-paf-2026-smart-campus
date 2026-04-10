@@ -2,8 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import HomePage from './pages/HomePage';
-import Bookings from './bookings/pages/Bookings';
 import Tickets from './ticketMgmt/pages/Tickets';
+import BookingPage from './bookings/pages/BookingPage';
 
 function App() {
   return (
@@ -25,6 +25,10 @@ function App() {
               <Tickets />
             </MainLayout>
           )}
+        />
+        <Route
+          path="/bookings"
+          element={<BookingPage />}
         />
       </Routes>
     </Router>

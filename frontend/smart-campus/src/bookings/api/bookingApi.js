@@ -8,7 +8,7 @@ const bookingApi = axios.create({
 
 export async function createBooking(bookingData) {
   try {
-    const response = await bookingApi.post("/", bookingData);
+    const response = await bookingApi.post("", bookingData);
     return response.data;
   } catch (error) {
     console.error("createBooking failed:", error);
@@ -28,7 +28,7 @@ export async function getUserBookings(userId) {
 
 export async function getAllBookings() {
   try {
-    const response = await bookingApi.get("/");
+    const response = await bookingApi.get("");
     return response.data;
   } catch (error) {
     console.error("getAllBookings failed:", error);
