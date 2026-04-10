@@ -4,7 +4,7 @@ const navLinks = [
   { label: 'Home', to: '/' },
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Resources' },
-  { label: 'Booking' }, // Temporary shortcut until the resource selection flow is finished.
+  { label: 'Booking', to: '/bookings' },
   { label: 'MyBookings' },
 ];
 
