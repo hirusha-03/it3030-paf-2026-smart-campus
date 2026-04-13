@@ -4,17 +4,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class SignupRequest {
+public class UserProfileResponse {
 
-
+    private int userId;
+    private String userName;
     private String userFirstName;
     private String userLastName;
-    private String contactNumber;
     private String email;
-    private String userName;
-    private String userPassword;
-    private String userRole;
+    private String contactNumber;
+    private Set<String> roles;
 }
