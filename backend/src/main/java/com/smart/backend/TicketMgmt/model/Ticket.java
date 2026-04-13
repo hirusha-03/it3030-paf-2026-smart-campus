@@ -39,6 +39,10 @@ public class Ticket {
     @JoinColumn(name = "assigned_to")
     private Users assignedTo;
 
+    // Optional relations (no FK constraints)
+    private Long relatedBookingId;
+    private Long relatedResourceId;
+
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -51,6 +55,15 @@ public class Ticket {
         this.description = description;
         this.priority = priority;
         this.createdBy = user;
+    }
+
+    public Ticket(String title, String description, Priority priority, Users user, Long relatedBookingId, Long relatedResourceId) {
+        this.title = title;
+        this.description = description;
+        this.priority = priority;
+        this.createdBy = user;
+        this.relatedBookingId = relatedBookingId;
+        this.relatedResourceId = relatedResourceId;
     }
 
     // Auto set values
@@ -91,4 +104,10 @@ public class Ticket {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Long getRelatedBookingId() { return relatedBookingId; }
+    public void setRelatedBookingId(Long relatedBookingId) { this.relatedBookingId = relatedBookingId; }
+
+    public Long getRelatedResourceId() { return relatedResourceId; }
+    public void setRelatedResourceId(Long relatedResourceId) { this.relatedResourceId = relatedResourceId; }
 }

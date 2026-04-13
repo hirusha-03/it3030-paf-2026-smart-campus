@@ -4,7 +4,7 @@ import TicketTable from '../components/TicketTable';
 import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
-import { getTicketsForUser, createTicket, assignTicket } from '../api/ticketService';
+import { getTickets, createTicket, assignTicket } from '../api/ticketService';
 
 const Tickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -23,7 +23,7 @@ const Tickets = () => {
 
   const fetchTickets = async () => {
     try {
-      const data = await getTicketsForUser(userId);
+      const data = await getTickets();
       setTickets(data);
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
@@ -32,7 +32,7 @@ const Tickets = () => {
 
   const handleCreateTicket = async (ticketData) => {
     try {
-      await createTicket(ticketData, userId);
+      await createTicket(ticketData);
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to create ticket:', error);
