@@ -1,8 +1,8 @@
-package com.smart.backend.TicketMgmt.enums;
+// package com.smart.backend.TicketMgmt.enums;
 
 
-public enum Role {
-    USER,
-    ADMIN,
-    TECHNICIAN
-}
+// public enum Role {
+//     USER,
+//     ADMIN,
+//     TECHNICIAN
+// }

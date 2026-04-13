@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.Set;
 
 @Entity
-@Table(name = "userss")
+@Table(name = "users")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -28,9 +28,11 @@ public class Users {
     @Column(name = "contact_number")
     private String contactNumber;
 
+    @Column(name = "email", length = 255, unique = true)  // ✅ Add this
+    private String email;
+
     @Column(name = "username", length = 100, nullable = false)
     private String userName;
-
 
     @Column(name = "password", nullable = false)
     private String userPassword;
@@ -45,5 +47,10 @@ public class Users {
             }
     )
     private Set<Role> role;
+
+//    public String getEmail() {
+//        // TODO Auto-generated method stub
+//        throw new UnsupportedOperationException("Unimplemented method 'getEmail'");
+//    }
 
 }
