@@ -48,9 +48,9 @@ public class Users {
     )
     private Set<Role> role;
 
-    public String getEmail() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getEmail'");
-    }
+//    public String getEmail() {
+//        // TODO Auto-generated method stub
+//        throw new UnsupportedOperationException("Unimplemented method 'getEmail'");
+//    }
 
 }
