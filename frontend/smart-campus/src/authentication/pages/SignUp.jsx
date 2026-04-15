@@ -52,6 +52,13 @@ export function SignUp() {
     <div className="min-h-screen bg-gray-100 flex justify-center p-7 overflow-y-auto">
       <div className="bg-white rounded-2xl border border-gray-200 p-9 w-full max-w-md">
 
+        <div className="flex items-center justify-center gap-2.5 mb-7">
+                  <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <BrandIcon />
+                  </div>
+                  <span className="text-lg font-medium text-gray-900">Smart Campus</span>
+                </div>
+
         {/* Tab switcher */}
         <div className="flex border border-gray-200 rounded-lg overflow-hidden mb-7">
           <button
@@ -186,6 +193,17 @@ export function SignUp() {
         </p>
       </div>
     </div>
+  );
+}
+
+export function BrandIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect x="2" y="2" width="7" height="7" rx="1.5" fill="white" opacity="0.9"/>
+      <rect x="11" y="2" width="7" height="7" rx="1.5" fill="white" opacity="0.5"/>
+      <rect x="2" y="11" width="7" height="7" rx="1.5" fill="white" opacity="0.5"/>
+      <rect x="11" y="11" width="7" height="7" rx="1.5" fill="white" opacity="0.3"/>
+    </svg>
   );
 }
 
