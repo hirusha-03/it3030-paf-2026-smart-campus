@@ -4,7 +4,7 @@ import TicketTable from '../components/TicketTable';
 import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
-import { getTickets, createTicket, assignTicket } from '../api/ticketService';
+import { getTickets, createTicket, assignTicket, getCurrentUser } from '../api/ticketService';
 
 const Tickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -12,13 +12,12 @@ const Tickets = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
-
-  // Mock user data - replace with actual auth
-  const userId = 1; // Example user ID
-  const userRole = 'ADMIN'; // 'STUDENT', 'TECHNICIAN', 'ADMIN'
+  const [userId, setUserId] = useState(null);
+  const [userRole, setUserRole] = useState('');
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
-    fetchTickets();
+    loadCurrentUser();
   }, []);
 
   const fetchTickets = async () => {
@@ -31,6 +30,28 @@ const Tickets = () => {
     }
   };
 
+  const loadCurrentUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUserId(currentUser.userId);
+      const role = Array.isArray(currentUser.roles)
+        ? currentUser.roles[0] || ''
+        : '';
+      setUserRole(role);
+      setIsUserLoading(false);
+      fetchTickets();
+    } catch (error) {
+      console.error('Failed to load current user:', error);
+      alert('Failed to load auth user: ' + (error.message || 'Please login again.'));
+      setIsUserLoading(false);
+    }
+  };
+
+  if (isUserLoading) {
+    return <div>Loading user...</div>;
+  }
+
+  
   const handleCreateTicket = async (ticketData) => {
     try {
       await createTicket(ticketData);

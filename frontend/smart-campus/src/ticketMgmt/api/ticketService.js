@@ -6,38 +6,53 @@ const ticketApi = axios.create({
   baseURL: TICKETS_BASE_URL,
 });
 
-// Add request interceptor to include auth token
-ticketApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken'); // Assuming token is stored in localStorage
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const authApi = axios.create({
+  baseURL: 'http://localhost:8080/api/v1/user',
+});
 
-// Add response interceptor for better error handling
-ticketApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.error('Unauthorized - Token may be expired');
-      localStorage.removeItem('authToken');
-      // Optionally redirect to login
+const addAuthInterceptor = (api) => {
+  api.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('authToken'); // Assuming token is stored in localStorage
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        console.error('Unauthorized - Token may be expired');
+        localStorage.removeItem('authToken');
+        // Optionally redirect to login
+      }
+      if (error.response?.status === 403) {
+        console.error('Forbidden - Insufficient permissions');
+      }
+      if (error.response?.status === 404) {
+        console.error('Resource not found');
+      }
+      return Promise.reject(error);
     }
-    if (error.response?.status === 403) {
-      console.error('Forbidden - Insufficient permissions');
-    }
-    if (error.response?.status === 404) {
-      console.error('Resource not found');
-    }
-    return Promise.reject(error);
+  );
+};
+
+addAuthInterceptor(ticketApi);
+addAuthInterceptor(authApi);
+
+export const getCurrentUser = async () => {
+  try {
+    const response = await authApi.get('/me');
+    return response.data;
+  } catch (error) {
+    console.error('getCurrentUser failed:', error);
+    throw error;
   }
-);
+};
 
 export const createTicket = async (ticketData) => {
   try {
