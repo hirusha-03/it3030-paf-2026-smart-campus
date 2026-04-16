@@ -13,6 +13,8 @@ public class TicketCreateDto {
     @NotNull
     private Priority priority;
     private List<String> attachmentFilePaths; // List of file paths/URLs from Supabase
+    private Long relatedBookingId; // Optional: ID of related booking
+    private Long relatedResourceId; // Optional: ID of related resource
 
     // Getters and setters
     public String getTitle() { return title; }
@@ -23,4 +25,8 @@ public class TicketCreateDto {
     public void setPriority(Priority priority) { this.priority = priority; }
     public List<String> getAttachmentFilePaths() { return attachmentFilePaths; }
     public void setAttachmentFilePaths(List<String> attachmentFilePaths) { this.attachmentFilePaths = attachmentFilePaths; }
+    public Long getRelatedBookingId() { return relatedBookingId; }
+    public void setRelatedBookingId(Long relatedBookingId) { this.relatedBookingId = relatedBookingId; }
+    public Long getRelatedResourceId() { return relatedResourceId; }
+    public void setRelatedResourceId(Long relatedResourceId) { this.relatedResourceId = relatedResourceId; }
 }

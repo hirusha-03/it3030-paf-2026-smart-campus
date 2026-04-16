@@ -24,7 +24,7 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   const handleAddComment = async () => {
     if (!comment.trim()) return;
     try {
-      await addComment(ticketId, comment, userId);
+      await addComment(ticketId, comment);
       setComment('');
       fetchTicket(); // Refresh
     } catch (error) {
@@ -34,7 +34,7 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
 
   const handleUpdateStatus = async () => {
     try {
-      await updateTicketStatus(ticketId, status, userId);
+      await updateTicketStatus(ticketId, status);
       fetchTicket(); // Refresh
     } catch (error) {
       console.error('Failed to update status:', error);

@@ -4,7 +4,7 @@ import TicketTable from '../components/TicketTable';
 import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
-import { getTicketsForUser, createTicket, assignTicket } from '../api/ticketService';
+import { getTickets, createTicket, assignTicket, getCurrentUser } from '../api/ticketService';
 
 const Tickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -12,30 +12,55 @@ const Tickets = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
-
-  // Mock user data - replace with actual auth
-  const userId = 1; // Example user ID
-  const userRole = 'ADMIN'; // 'STUDENT', 'TECHNICIAN', 'ADMIN'
+  const [userId, setUserId] = useState(null);
+  const [userRole, setUserRole] = useState('');
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
-    fetchTickets();
+    loadCurrentUser();
   }, []);
 
   const fetchTickets = async () => {
     try {
-      const data = await getTicketsForUser(userId);
+      const data = await getTickets();
       setTickets(data);
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
+      alert('Failed to fetch tickets: ' + (error.message || 'Network error'));
     }
   };
 
+  const loadCurrentUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUserId(currentUser.userId);
+      const role = Array.isArray(currentUser.roles)
+        ? currentUser.roles[0] || ''
+        : '';
+      setUserRole(role);
+      setIsUserLoading(false);
+      fetchTickets();
+    } catch (error) {
+      console.error('Failed to load current user:', error);
+      alert('Failed to load auth user: ' + (error.message || 'Please login again.'));
+      setIsUserLoading(false);
+    }
+  };
+
+  if (isUserLoading) {
+    return <div>Loading user...</div>;
+  }
+
+  
   const handleCreateTicket = async (ticketData) => {
     try {
-      await createTicket(ticketData, userId);
+      await createTicket(ticketData);
+      alert('Ticket created successfully!');
+      setIsFormModalOpen(false);
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to create ticket:', error);
+      alert('Failed to create ticket: ' + error.message);
     }
   };
 
@@ -56,10 +81,12 @@ const Tickets = () => {
 
   const handleAssignSubmit = async (ticketId, assignedToId) => {
     try {
-      await assignTicket(ticketId, assignedToId, userId);
+      await assignTicket(ticketId, assignedToId);
+      alert('Ticket assigned successfully!');
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to assign ticket:', error);
+      alert('Failed to assign ticket: ' + error.message);
     }
   };
 

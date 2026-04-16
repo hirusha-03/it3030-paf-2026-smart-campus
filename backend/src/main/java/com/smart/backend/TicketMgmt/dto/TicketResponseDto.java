@@ -17,6 +17,8 @@ public class TicketResponseDto {
     private LocalDateTime updatedAt;
     private List<CommentResponseDto> comments;
     private List<AttachmentDto> attachments;
+    private Long relatedBookingId;
+    private Long relatedResourceId;
 
     // Getters and setters
     public Long getId() { return id; }
@@ -41,4 +43,8 @@ public class TicketResponseDto {
     public void setComments(List<CommentResponseDto> comments) { this.comments = comments; }
     public List<AttachmentDto> getAttachments() { return attachments; }
     public void setAttachments(List<AttachmentDto> attachments) { this.attachments = attachments; }
+    public Long getRelatedBookingId() { return relatedBookingId; }
+    public void setRelatedBookingId(Long relatedBookingId) { this.relatedBookingId = relatedBookingId; }
+    public Long getRelatedResourceId() { return relatedResourceId; }
+    public void setRelatedResourceId(Long relatedResourceId) { this.relatedResourceId = relatedResourceId; }
 }

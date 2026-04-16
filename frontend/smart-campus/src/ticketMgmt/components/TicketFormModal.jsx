@@ -7,6 +7,8 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
     description: '',
     priority: 'LOW',
     attachments: [],
+    relatedBookingId: '',
+    relatedResourceId: '',
   });
 
   const handleChange = (e) => {
@@ -17,7 +19,7 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
-    setFormData({ title: '', description: '', priority: 'LOW', attachments: [] });
+    setFormData({ title: '', description: '', priority: 'LOW', attachments: [], relatedBookingId: '', relatedResourceId: '' });
     onClose();
   };
 
@@ -67,6 +69,28 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Related Booking ID (Optional)</label>
+            <input
+              type="number"
+              name="relatedBookingId"
+              value={formData.relatedBookingId}
+              onChange={handleChange}
+              placeholder="Enter booking ID if related"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Related Resource ID (Optional)</label>
+            <input
+              type="number"
+              name="relatedResourceId"
+              value={formData.relatedResourceId}
+              onChange={handleChange}
+              placeholder="Enter resource ID if related"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
           </div>
           <div className="flex justify-end gap-3">
             <button

@@ -31,7 +31,8 @@ public class TicketService {
 
     public TicketResponseDto createTicket(TicketCreateDto dto, Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
-        Ticket ticket = new Ticket(dto.getTitle(), dto.getDescription(), dto.getPriority(), user);
+        Ticket ticket = new Ticket(dto.getTitle(), dto.getDescription(), dto.getPriority(), user,
+                                  dto.getRelatedBookingId(), dto.getRelatedResourceId());
         ticket = ticketRepo.save(ticket);
 
         if (dto.getAttachmentFilePaths() != null) {
@@ -108,6 +109,8 @@ public class TicketService {
         }
         dto.setComments(commentRepo.findByTicketOrderByIdAsc(ticket).stream().map(this::mapCommentToResponse).collect(Collectors.toList()));
         dto.setAttachments(attachmentRepo.findByTicket(ticket).stream().map(this::mapAttachmentToDto).collect(Collectors.toList()));
+        dto.setRelatedBookingId(ticket.getRelatedBookingId());
+        dto.setRelatedResourceId(ticket.getRelatedResourceId());
         return dto;
     }
 
