@@ -20,6 +20,25 @@ ticketApi.interceptors.request.use(
   }
 );
 
+// Add response interceptor for better error handling
+ticketApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.error('Unauthorized - Token may be expired');
+      localStorage.removeItem('authToken');
+      // Optionally redirect to login
+    }
+    if (error.response?.status === 403) {
+      console.error('Forbidden - Insufficient permissions');
+    }
+    if (error.response?.status === 404) {
+      console.error('Resource not found');
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const createTicket = async (ticketData) => {
   try {
     const response = await ticketApi.post('', ticketData);

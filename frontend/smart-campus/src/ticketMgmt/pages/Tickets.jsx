@@ -27,15 +27,19 @@ const Tickets = () => {
       setTickets(data);
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
+      alert('Failed to fetch tickets: ' + (error.message || 'Network error'));
     }
   };
 
   const handleCreateTicket = async (ticketData) => {
     try {
       await createTicket(ticketData);
+      alert('Ticket created successfully!');
+      setIsFormModalOpen(false);
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to create ticket:', error);
+      alert('Failed to create ticket: ' + error.message);
     }
   };
 
@@ -56,10 +60,12 @@ const Tickets = () => {
 
   const handleAssignSubmit = async (ticketId, assignedToId) => {
     try {
-      await assignTicket(ticketId, assignedToId, userId);
+      await assignTicket(ticketId, assignedToId);
+      alert('Ticket assigned successfully!');
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to assign ticket:', error);
+      alert('Failed to assign ticket: ' + error.message);
     }
   };
 
