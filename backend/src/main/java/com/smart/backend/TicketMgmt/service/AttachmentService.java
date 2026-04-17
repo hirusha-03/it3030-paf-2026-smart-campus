@@ -13,6 +13,10 @@ import java.util.stream.Collectors;
 @Service
 public class AttachmentService {
 
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final int MAX_ATTACHMENTS = 3;
+    private static final String[] ALLOWED_TYPES = {"image/png", "image/jpeg", "image/jpg"};
+
     @Autowired
     private AttachmentRepository attachmentRepo;
     @Autowired
@@ -27,6 +31,13 @@ public class AttachmentService {
     // Add method to save attachment (integrate with Supabase upload)
     public void saveAttachment(Long ticketId, String filePath) {
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+        
+        // Validate attachment count
+        List<Attachment> existingAttachments = attachmentRepo.findByTicket(ticket);
+        if (existingAttachments.size() >= MAX_ATTACHMENTS) {
+            throw new IllegalArgumentException("Maximum " + MAX_ATTACHMENTS + " attachments allowed per ticket");
+        }
+        
         Attachment att = new Attachment();
         att.setFilePath(filePath);
         att.setTicket(ticket);

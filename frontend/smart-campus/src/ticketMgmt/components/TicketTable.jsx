@@ -1,5 +1,6 @@
 import React from 'react';
 import { Eye, UserCheck, RefreshCw } from 'lucide-react';
+import { isAdmin, isStaff } from '../utils/roleUtils';
 
 const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) => {
   const getStatusColor = (status) => {
@@ -8,6 +9,7 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
       case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800';
       case 'RESOLVED': return 'bg-green-100 text-green-800';
       case 'CLOSED': return 'bg-gray-100 text-gray-800';
+      case 'REJECTED': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -45,6 +47,7 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created By</th>
@@ -58,6 +61,7 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
               <tr key={ticket.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{ticket.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{ticket.title}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{ticket.category || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(ticket.status)}`}>
                     {ticket.status}
@@ -92,12 +96,12 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
                   <button onClick={() => onView(ticket.id)} className="text-indigo-600 hover:text-indigo-900">
                     <Eye size={16} />
                   </button>
-                  {userRole === 'ADMIN' && !ticket.assignedTo && (
+                  {isAdmin(userRole) && !ticket.assignedTo && (
                     <button onClick={() => onAssign(ticket.id)} className="text-green-600 hover:text-green-900">
                       <UserCheck size={16} />
                     </button>
                   )}
-                  {(userRole === 'ADMIN' || userRole === 'TECHNICIAN') && (
+                  {isStaff(userRole) && (
                     <button onClick={() => onUpdateStatus(ticket.id)} className="text-blue-600 hover:text-blue-900">
                       <RefreshCw size={16} />
                     </button>

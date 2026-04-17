@@ -94,12 +94,26 @@ export const assignTicket = async (ticketId, assignedToId) => {
   }
 };
 
-export const updateTicketStatus = async (ticketId, status) => {
+export const updateTicketStatus = async (ticketId, status, resolutionNotes = null) => {
   try {
-    const response = await ticketApi.put(`/${ticketId}/status`, { status });
+    const body = { status };
+    if (resolutionNotes) {
+      body.resolutionNotes = resolutionNotes;
+    }
+    const response = await ticketApi.put(`/${ticketId}/status`, body);
     return response.data;
   } catch (error) {
     console.error('updateTicketStatus failed:', error);
+    throw error;
+  }
+};
+
+export const rejectTicket = async (ticketId, rejectionReason) => {
+  try {
+    const response = await ticketApi.put(`/${ticketId}/reject`, { rejectionReason });
+    return response.data;
+  } catch (error) {
+    console.error('rejectTicket failed:', error);
     throw error;
   }
 };
@@ -110,6 +124,25 @@ export const addComment = async (ticketId, message) => {
     return response.data;
   } catch (error) {
     console.error('addComment failed:', error);
+    throw error;
+  }
+};
+
+export const updateComment = async (ticketId, commentId, message) => {
+  try {
+    const response = await ticketApi.put(`/${ticketId}/comments/${commentId}`, { message });
+    return response.data;
+  } catch (error) {
+    console.error('updateComment failed:', error);
+    throw error;
+  }
+};
+
+export const deleteComment = async (ticketId, commentId) => {
+  try {
+    await ticketApi.delete(`/${ticketId}/comments/${commentId}`);
+  } catch (error) {
+    console.error('deleteComment failed:', error);
     throw error;
   }
 };

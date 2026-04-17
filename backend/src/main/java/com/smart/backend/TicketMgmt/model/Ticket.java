@@ -2,6 +2,7 @@ package com.smart.backend.TicketMgmt.model;
 
 import com.smart.backend.TicketMgmt.enums.Priority;
 import com.smart.backend.TicketMgmt.enums.TicketStatus;
+import com.smart.backend.TicketMgmt.enums.ContactMethod;
 import com.smart.backend.authentication.entity.Users;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -42,6 +43,19 @@ public class Ticket {
     // Optional relations (no FK constraints)
     private Long relatedBookingId;
     private Long relatedResourceId;
+
+    // Category and contact info
+    private String category; // e.g., "Maintenance", "Technical", "General"
+    @Enumerated(EnumType.STRING)
+    private ContactMethod contactMethod; // EMAIL, PHONE, IN_PERSON
+    private String contactDetails; // Phone number or email
+
+    // Resolution tracking
+    @Column(columnDefinition = "TEXT")
+    private String resolutionNotes; // Notes from technician
+    
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason; // Reason if ticket is rejected
 
     // Timestamps
     private LocalDateTime createdAt;
@@ -110,4 +124,19 @@ public class Ticket {
 
     public Long getRelatedResourceId() { return relatedResourceId; }
     public void setRelatedResourceId(Long relatedResourceId) { this.relatedResourceId = relatedResourceId; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public ContactMethod getContactMethod() { return contactMethod; }
+    public void setContactMethod(ContactMethod contactMethod) { this.contactMethod = contactMethod; }
+
+    public String getContactDetails() { return contactDetails; }
+    public void setContactDetails(String contactDetails) { this.contactDetails = contactDetails; }
+
+    public String getResolutionNotes() { return resolutionNotes; }
+    public void setResolutionNotes(String resolutionNotes) { this.resolutionNotes = resolutionNotes; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 }

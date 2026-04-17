@@ -6,6 +6,9 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
     title: '',
     description: '',
     priority: 'LOW',
+    category: '',
+    contactMethod: 'EMAIL',
+    contactDetails: '',
     attachments: [],
     relatedBookingId: '',
     relatedResourceId: '',
@@ -48,7 +51,7 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
-    setFormData({ title: '', description: '', priority: 'LOW', attachments: [], relatedBookingId: '', relatedResourceId: '' });
+    setFormData({ title: '', description: '', priority: 'LOW', category: '', contactMethod: 'EMAIL', contactDetails: '', attachments: [], relatedBookingId: '', relatedResourceId: '' });
     onClose();
   };
 
@@ -98,6 +101,43 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+            <input
+              type="text"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              placeholder="e.g., Maintenance, Technical, General"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Preferred Contact Method</label>
+            <select
+              name="contactMethod"
+              value={formData.contactMethod}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="EMAIL">Email</option>
+              <option value="PHONE">Phone</option>
+              <option value="IN_PERSON">In Person</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Contact Details</label>
+            <input
+              type="text"
+              name="contactDetails"
+              value={formData.contactDetails}
+              onChange={handleChange}
+              placeholder={formData.contactMethod === 'PHONE' ? 'Phone number' : formData.contactMethod === 'EMAIL' ? 'Email address' : 'Location/Details'}
+              required
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Related Booking ID (Optional)</label>
