@@ -4,15 +4,13 @@ import com.smart.backend.ResourceMgmt.model.Resource;
 import com.smart.backend.ResourceMgmt.enums.ResourceType;
 import com.smart.backend.ResourceMgmt.enums.ResourceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ResourceRepository extends JpaRepository<Resource, Long>, JpaSpecificationExecutor<Resource> {
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
     
+    // Basic finder methods
     List<Resource> findByType(ResourceType type);
     
     List<Resource> findByStatus(ResourceStatus status);
@@ -21,13 +19,26 @@ public interface ResourceRepository extends JpaRepository<Resource, Long>, JpaSp
     
     List<Resource> findByCapacityGreaterThanEqual(Integer capacity);
     
-    @Query("SELECT r FROM Resource r WHERE " +
-           "(:type IS NULL OR r.type = :type) AND " +
-           "(:location IS NULL OR LOWER(r.location) LIKE LOWER(CONCAT('%', :location, '%'))) AND " +
-           "(:minCapacity IS NULL OR r.capacity >= :minCapacity) AND " +
-           "(:status IS NULL OR r.status = :status)")
-    List<Resource> searchResources(@Param("type") ResourceType type,
-                                   @Param("location") String location,
-                                   @Param("minCapacity") Integer minCapacity,
-                                   @Param("status") ResourceStatus status);
+    // Combined search methods
+    List<Resource> findByTypeAndLocationContainingIgnoreCase(ResourceType type, String location);
+    
+    List<Resource> findByTypeAndCapacityGreaterThanEqual(ResourceType type, Integer minCapacity);
+    
+    List<Resource> findByTypeAndStatus(ResourceType type, ResourceStatus status);
+    
+    List<Resource> findByLocationContainingIgnoreCaseAndCapacityGreaterThanEqual(String location, Integer minCapacity);
+    
+    List<Resource> findByLocationContainingIgnoreCaseAndStatus(String location, ResourceStatus status);
+    
+    List<Resource> findByCapacityGreaterThanEqualAndStatus(Integer minCapacity, ResourceStatus status);
+    
+    List<Resource> findByTypeAndLocationContainingIgnoreCaseAndCapacityGreaterThanEqual(ResourceType type, String location, Integer minCapacity);
+    
+    List<Resource> findByTypeAndLocationContainingIgnoreCaseAndStatus(ResourceType type, String location, ResourceStatus status);
+    
+    List<Resource> findByTypeAndCapacityGreaterThanEqualAndStatus(ResourceType type, Integer minCapacity, ResourceStatus status);
+    
+    List<Resource> findByLocationContainingIgnoreCaseAndCapacityGreaterThanEqualAndStatus(String location, Integer minCapacity, ResourceStatus status);
+    
+    List<Resource> findByTypeAndLocationContainingIgnoreCaseAndCapacityGreaterThanEqualAndStatus(ResourceType type, String location, Integer minCapacity, ResourceStatus status);
 }

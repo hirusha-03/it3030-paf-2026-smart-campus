@@ -31,6 +31,9 @@ public class Users {
     @Column(name = "username", length = 100, nullable = false)
     private String userName;
 
+    @Column(name = "email", length = 255, unique = true, nullable = false) 
+    private String email;
+
 
     @Column(name = "password", nullable = false)
     private String userPassword;
@@ -46,9 +49,29 @@ public class Users {
     )
     private Set<Role> role;
 
-    public String getEmail() {
+    /*public String getEmail() {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getEmail'");
+    }*/
+
+    public String getEmail() {
+        return email;
+    }
+    
+    // ADD THIS SETTER METHOD
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+     public String getName() {
+        if (userFirstName != null && userLastName != null) {
+            return userFirstName + " " + userLastName;
+        } else if (userFirstName != null) {
+            return userFirstName;
+        } else if (userLastName != null) {
+            return userLastName;
+        }
+        return userName;
     }
 
 }
