@@ -51,6 +51,12 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.updateStatus(id, dto, techId));
     }
 
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<TicketResponseDto> rejectTicket(@PathVariable Long id, @RequestBody TicketRejectDto dto) {
+        Long adminId = getCurrentUserId();
+        return ResponseEntity.ok(ticketService.rejectTicket(id, dto, adminId));
+    }
+
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User) {

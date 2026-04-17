@@ -5,6 +5,7 @@ import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
 import { getTickets, createTicket, assignTicket, getCurrentUser } from '../api/ticketService';
+import { normalizeRole } from '../utils/roleUtils';
 
 const Tickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -34,10 +35,12 @@ const Tickets = () => {
     try {
       const currentUser = await getCurrentUser();
       setUserId(currentUser.userId);
-      const role = Array.isArray(currentUser.roles)
+      const rawRole = Array.isArray(currentUser.roles)
         ? currentUser.roles[0] || ''
-        : '';
-      setUserRole(role);
+        : typeof currentUser.roles === 'string'
+          ? currentUser.roles
+          : '';
+      setUserRole(normalizeRole(rawRole));
       setIsUserLoading(false);
       fetchTickets();
     } catch (error) {
@@ -47,6 +50,13 @@ const Tickets = () => {
     }
   };
 
+  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
   if (isUserLoading) {
     return <div>Loading user...</div>;
   }
@@ -54,7 +64,17 @@ const Tickets = () => {
   
   const handleCreateTicket = async (ticketData) => {
     try {
-      await createTicket(ticketData);
+      const attachmentFilePaths = ticketData.attachments
+        ? await Promise.all(ticketData.attachments.map(readFileAsDataUrl))
+        : [];
+
+      const payload = {
+        ...ticketData,
+        attachmentFilePaths,
+      };
+      delete payload.attachments;
+
+      await createTicket(payload);
       alert('Ticket created successfully!');
       setIsFormModalOpen(false);
       fetchTickets(); // Refresh list

@@ -10,6 +10,7 @@ import com.smart.backend.authentication.entity.Users;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -26,6 +27,33 @@ public class CommentService {
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
         List<Comment> comments = commentRepo.findByTicketOrderByIdAsc(ticket);
         return comments.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    public CommentResponseDto updateComment(Long commentId, String message, Long userId) {
+        Comment comment = commentRepo.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+        
+        // Check ownership
+        if (comment.getUser().getUserId() != userId.intValue()) {
+            throw new IllegalStateException("You can only edit your own comments");
+        }
+        
+        comment.setMessage(message);
+        comment.setTimestamp(LocalDateTime.now());
+        comment = commentRepo.save(comment);
+        return mapToResponse(comment);
+    }
+
+    public void deleteComment(Long commentId, Long userId) {
+        Comment comment = commentRepo.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+        
+        // Check ownership
+        if (comment.getUser().getUserId() != userId.intValue()) {
+            throw new IllegalStateException("You can only delete your own comments");
+        }
+        
+        commentRepo.delete(comment);
     }
 
     private CommentResponseDto mapToResponse(Comment comment) {

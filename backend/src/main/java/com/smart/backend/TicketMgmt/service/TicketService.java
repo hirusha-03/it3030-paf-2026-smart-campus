@@ -33,9 +33,15 @@ public class TicketService {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         Ticket ticket = new Ticket(dto.getTitle(), dto.getDescription(), dto.getPriority(), user,
                                   dto.getRelatedBookingId(), dto.getRelatedResourceId());
+        ticket.setCategory(dto.getCategory());
+        ticket.setContactMethod(dto.getContactMethod());
+        ticket.setContactDetails(dto.getContactDetails());
         ticket = ticketRepo.save(ticket);
 
         if (dto.getAttachmentFilePaths() != null) {
+            if (dto.getAttachmentFilePaths().size() > 3) {
+                throw new IllegalArgumentException("Maximum 3 attachments allowed per ticket");
+            }
             for (String path : dto.getAttachmentFilePaths()) {
                 Attachment att = new Attachment();
                 att.setFilePath(path);
@@ -76,11 +82,26 @@ public class TicketService {
 
     public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
         Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
-        if (!hasRole(tech, "TECHNICIAN")) {
-            throw new IllegalStateException("Only TECHNICIAN users can update ticket status");
+        if (!hasRole(tech, "TECHNICIAN") && !hasRole(tech, "ADMIN")) {
+            throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
         }
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
         ticket.setStatus(dto.getStatus());
+        if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
+            ticket.setResolutionNotes(dto.getResolutionNotes());
+        }
+        ticket = ticketRepo.save(ticket);
+        return mapToResponse(ticket);
+    }
+
+    public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
+        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+        if (!hasRole(admin, "ADMIN")) {
+            throw new IllegalStateException("Only ADMIN users can reject tickets");
+        }
+        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+        ticket.setStatus(com.smart.backend.TicketMgmt.enums.TicketStatus.REJECTED);
+        ticket.setRejectionReason(dto.getRejectionReason());
         ticket = ticketRepo.save(ticket);
         return mapToResponse(ticket);
     }
@@ -99,6 +120,11 @@ public class TicketService {
         dto.setDescription(ticket.getDescription());
         dto.setStatus(ticket.getStatus());
         dto.setPriority(ticket.getPriority());
+        dto.setCategory(ticket.getCategory());
+        dto.setContactMethod(ticket.getContactMethod());
+        dto.setContactDetails(ticket.getContactDetails());
+        dto.setResolutionNotes(ticket.getResolutionNotes());
+        dto.setRejectionReason(ticket.getRejectionReason());
         dto.setCreatedAt(ticket.getCreatedAt());
         dto.setUpdatedAt(ticket.getUpdatedAt());
         if (ticket.getCreatedBy() != null) {

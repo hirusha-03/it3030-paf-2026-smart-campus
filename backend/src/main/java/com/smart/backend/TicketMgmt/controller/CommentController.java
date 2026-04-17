@@ -16,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/tickets/{ticketId}/comments")
+@CrossOrigin
 public class CommentController {
 
     @Autowired
@@ -37,6 +38,24 @@ public class CommentController {
         Long userId = getCurrentUserId();
         ticketService.addComment(ticketId, dto, userId);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PutMapping("/{commentId}")
+    public ResponseEntity<CommentResponseDto> updateComment(
+            @PathVariable Long ticketId,
+            @PathVariable Long commentId,
+            @RequestBody CommentCreateDto dto) {
+        Long userId = getCurrentUserId();
+        return ResponseEntity.ok(commentService.updateComment(commentId, dto.getMessage(), userId));
+    }
+
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable Long ticketId,
+            @PathVariable Long commentId) {
+        Long userId = getCurrentUserId();
+        commentService.deleteComment(commentId, userId);
+        return ResponseEntity.noContent().build();
     }
 
     private Long getCurrentUserId() {
