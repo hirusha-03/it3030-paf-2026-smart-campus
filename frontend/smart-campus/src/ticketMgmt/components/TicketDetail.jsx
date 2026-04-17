@@ -82,6 +82,27 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
             <span className="ml-2 text-slate-700">{ticket.assignedTo?.name || 'Unassigned'}</span>
           </div>
         </div>
+        {ticket.attachments?.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Attachments</h3>
+            <div className="space-y-2">
+              {ticket.attachments.map((attachment) => (
+                <div key={attachment.id}>
+                  <a
+                    href={attachment.filePath}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-600 hover:text-indigo-900 underline"
+                  >
+                    {attachment.filePath.startsWith('data:image')
+                      ? 'View image'
+                      : attachment.filePath.split('/').pop()}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">

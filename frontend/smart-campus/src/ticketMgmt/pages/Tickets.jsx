@@ -47,6 +47,13 @@ const Tickets = () => {
     }
   };
 
+  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
   if (isUserLoading) {
     return <div>Loading user...</div>;
   }
@@ -54,7 +61,17 @@ const Tickets = () => {
   
   const handleCreateTicket = async (ticketData) => {
     try {
-      await createTicket(ticketData);
+      const attachmentFilePaths = ticketData.attachments
+        ? await Promise.all(ticketData.attachments.map(readFileAsDataUrl))
+        : [];
+
+      const payload = {
+        ...ticketData,
+        attachmentFilePaths,
+      };
+      delete payload.attachments;
+
+      await createTicket(payload);
       alert('Ticket created successfully!');
       setIsFormModalOpen(false);
       fetchTickets(); // Refresh list

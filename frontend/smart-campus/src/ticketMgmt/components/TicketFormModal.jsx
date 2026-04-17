@@ -16,6 +16,35 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    const allowedFiles = files.filter((file) =>
+      ['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)
+    );
+
+    if (allowedFiles.length !== files.length) {
+      alert('Only PNG and JPEG files are allowed.');
+      return;
+    }
+
+    if (allowedFiles.length + formData.attachments.length > 3) {
+      alert('You can attach up to 3 images only.');
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      attachments: [...prev.attachments, ...allowedFiles],
+    }));
+  };
+
+  const removeAttachment = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
@@ -91,6 +120,32 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
               placeholder="Enter resource ID if related"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Attachments (PNG/JPEG, max 3)</label>
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              multiple
+              onChange={handleFileChange}
+              className="w-full text-sm text-slate-600"
+            />
+            {formData.attachments.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {formData.attachments.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 bg-slate-50">
+                    <span className="text-sm text-slate-700 truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(index)}
+                      className="text-sm text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-3">
             <button

@@ -12,6 +12,19 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
     }
   };
 
+  const getAttachmentLabel = (filePath) => {
+    if (!filePath) return 'Attachment';
+    try {
+      const url = new URL(filePath);
+      return url.pathname.split('/').pop();
+    } catch {
+      if (filePath.startsWith('data:image')) {
+        return 'Image attachment';
+      }
+      return filePath.split('/').pop();
+    }
+  };
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'HIGH': return 'text-red-600';
@@ -36,6 +49,7 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created By</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assigned To</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Attachments</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -54,6 +68,26 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{ticket.createdBy?.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{ticket.assignedTo?.name || 'Unassigned'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                  {ticket.attachments?.length > 0 ? (
+                    <div className="space-y-1">
+                      {ticket.attachments.map((attachment) => (
+                        <div key={attachment.id}>
+                          <a
+                            href={attachment.filePath}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-indigo-600 hover:text-indigo-900 underline"
+                          >
+                            {getAttachmentLabel(attachment.filePath)}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-400">No attachments</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <button onClick={() => onView(ticket.id)} className="text-indigo-600 hover:text-indigo-900">
                     <Eye size={16} />
