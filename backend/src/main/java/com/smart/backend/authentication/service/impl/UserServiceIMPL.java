@@ -1,17 +1,20 @@
 package com.smart.backend.authentication.service.impl;
 
 import com.smart.backend.authentication.dto.SignupRequest;
+import com.smart.backend.authentication.dto.UserProfileResponse;
 import com.smart.backend.authentication.entity.Role;
 import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.RoleRepo;
 import com.smart.backend.authentication.repo.UserRepo;
 import com.smart.backend.authentication.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceIMPL implements UserService {
@@ -28,9 +31,9 @@ public class UserServiceIMPL implements UserService {
 
     @Override
     public Users registerNewUser(SignupRequest signupRequest) {
-
         if(!userRepo.existsByUserName(signupRequest.getUserName())){
             Users user = new Users();
+            user.setEmail(signupRequest.getEmail());
             user.setUserName(signupRequest.getUserName());
             user.setUserPassword(getEncodedPassword(signupRequest.getUserPassword()));
             user.setUserFirstName(signupRequest.getUserFirstName());
@@ -72,6 +75,7 @@ public class UserServiceIMPL implements UserService {
         if (!userRepo.existsByUserName("admin123")) {
             Users user = new Users();
             user.setUserName("admin123");
+            user.setEmail("admin@gmail.com");
             user.setUserPassword(getEncodedPassword("admin@123"));
             user.setUserFirstName("Tashen");
             user.setUserLastName("Chamika");
@@ -87,6 +91,7 @@ public class UserServiceIMPL implements UserService {
         if (!userRepo.existsByUserName("user123")) {
             Users user = new Users();
             user.setUserName("user123");
+            user.setEmail("user@gmail.com");
             user.setUserPassword(getEncodedPassword("user@123"));
             user.setUserFirstName("Kamal");
             user.setUserLastName("Perera");
@@ -100,8 +105,32 @@ public class UserServiceIMPL implements UserService {
         }
     }
 
+    @Override
+    public UserProfileResponse getUserProfile(String username) {
+        Users user = userRepo.findByUserName(username)
+                .or(() -> userRepo.findByEmail(username))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        Set<String> roles = user.getRole() != null
+                ? user.getRole().stream()
+                .map(role -> role.getRoleName())
+                .collect(Collectors.toSet())
+                : Set.of("USER");
+
+        return new UserProfileResponse(
+                user.getUserId(),
+                user.getUserName(),
+                user.getUserFirstName(),
+                user.getUserLastName(),
+                user.getEmail(),
+                user.getContactNumber(),
+                roles
+        );
+
+    }
+
     public String getEncodedPassword(String password){
         return passwordEncoder.encode(password);
     }
-}
 
+}
