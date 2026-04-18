@@ -83,19 +83,30 @@ public class TicketService {
     }
 
     public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
-        Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
-        if (!hasRole(tech, "TECHNICIAN") && !hasRole(tech, "ADMIN")) {
-            throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
-        }
-        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-        ticket.setStatus(dto.getStatus());
-        if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
-            ticket.setResolutionNotes(dto.getResolutionNotes());
-        }
-        ticket = ticketRepo.save(ticket);
-        return mapToResponse(ticket);
+    Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
+    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+    // Role check
+    if (!hasRole(tech, "TECHNICIAN") && !hasRole(tech, "ADMIN")) {
+        throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
     }
 
+    // technician can only update assigned ticket
+    if (hasRole(tech, "TECHNICIAN")) {
+        if (ticket.getAssignedTo() == null ||
+            ticket.getAssignedTo().getUserId() != tech.getUserId()) {
+            throw new IllegalStateException("You can only update tickets assigned to you");
+        }
+    }
+
+    ticket.setStatus(dto.getStatus());
+
+    if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
+        ticket.setResolutionNotes(dto.getResolutionNotes());
+    }
+
+    return mapToResponse(ticketRepo.save(ticket));
+}
     public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
         Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
         if (!hasRole(admin, "ADMIN")) {
