@@ -55,8 +55,10 @@ public class TicketService {
     public List<TicketResponseDto> getTicketsForUser(Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         List<Ticket> tickets;
-        if (hasRole(user, "ADMIN") || hasRole(user, "TECHNICIAN")) {
+        if (hasRole(user, "ADMIN")) {
             tickets = ticketRepo.findAll();
+        } else if (hasRole(user, "TECHNICIAN")) {
+            tickets = ticketRepo.findByAssignedTo(user); // 🔥 KEY CHANGE
         } else {
             tickets = ticketRepo.findByCreatedBy(user);
         }

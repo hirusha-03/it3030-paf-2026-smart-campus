@@ -72,6 +72,14 @@ public class UserServiceIMPL implements UserService {
             roleRepo.save(userRole);
         }
 
+        Role technicianRole = new Role();
+        if (!roleRepo.existsByRoleName("Technician")) {
+            technicianRole.setRoleName("Technician");
+            technicianRole.setRoleDescription("Technician role");
+            roleRepo.save(technicianRole);
+        }
+
+
         if (!userRepo.existsByUserName("admin123")) {
             Users user = new Users();
             user.setUserName("admin123");
@@ -101,6 +109,22 @@ public class UserServiceIMPL implements UserService {
             userRoles.add(userRole);
 
             user.setRole(userRoles);
+            userRepo.save(user);
+        }
+
+        if (!userRepo.existsByUserName("tech123")) {
+            Users user = new Users();
+            user.setUserName("tech123");
+            user.setEmail("tech@gmail.com");
+            user.setUserPassword(getEncodedPassword("tech@123"));
+            user.setUserFirstName("Nimal");
+            user.setUserLastName("Silva");
+            user.setContactNumber("0712345678");
+
+            Set<Role> techRoles = new HashSet<>();
+            techRoles.add(technicianRole);
+
+            user.setRole(techRoles);
             userRepo.save(user);
         }
     }
