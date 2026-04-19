@@ -10,6 +10,12 @@ const authApi = axios.create({
   baseURL: 'http://localhost:8080/api/v1/user',
 });
 
+const resourceApi = axios.create({
+  baseURL: 'http://localhost:8080/api/resources',
+});
+
+
+
 const addAuthInterceptor = (api) => {
   api.interceptors.request.use(
     (config) => {
@@ -43,6 +49,8 @@ const addAuthInterceptor = (api) => {
 
 addAuthInterceptor(ticketApi);
 addAuthInterceptor(authApi);
+addAuthInterceptor(resourceApi);
+
 
 export const getCurrentUser = async () => {
   try {
@@ -153,6 +161,17 @@ export const getTechnicians = async () => {
     return response.data;
   } catch (error) {
     console.error('getTechnicians failed:', error);
+    throw error;
+  }
+};
+
+
+export const getAvailableResources = async () => {
+  try {
+    const response = await resourceApi.get('/available');
+    return response.data;
+  } catch (error) {
+    console.error('getAvailableResources failed:', error);
     throw error;
   }
 };
