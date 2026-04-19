@@ -15,13 +15,13 @@ export default function Profile() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    // ✅ No token — redirect to signin immediately
+    // No token — redirect to signin immediately
     if (!token) {
       navigate("/signin");
       return;
     }
 
-    // ✅ Debug — remove after fixing
+    // Debug — remove after fixing
     console.log("Token found:", token);
 
     fetchUserProfile(token);
@@ -45,7 +45,7 @@ export default function Profile() {
     } catch (err) {
       console.error("Profile fetch error:", err.response?.status, err.response?.data);
 
-      // ✅ Token expired or invalid — redirect to signin
+      // Token expired or invalid — redirect to signin
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -88,12 +88,11 @@ export default function Profile() {
     return user.userFirstName || user.userName || '';
   };
 
-const getRole = () => {
-  if (!user?.role) return 'User';
-  const roles = Array.isArray(user.role) ? user.role : [user.role];
-  // role is a Set of Role objects {roleId, roleName}
-  return roles[0]?.roleName?.replace('ROLE_', '') || 'User';
-};
+  const getRole = () => {
+    if (!user?.roles) return 'User';
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    return roles[0]?.replace('ROLE_', '') || 'User';
+  };
   const isGoogleUser = () => !user?.userPassword || user?.userPassword === '';
 
   if (loading) {

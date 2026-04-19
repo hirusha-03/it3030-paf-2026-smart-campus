@@ -23,9 +23,9 @@ const Header = ({ setSidebarOpen }) => {
 
   //  Get role
   const getRole = () => {
-    if (!user?.roles) return 'Student';
+    if (!user?.roles) return 'User';
     const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
-    return roles[0]?.replace('ROLE_', '') || 'Student';
+    return roles[0]?.replace('ROLE_', '') || 'User';
   };
 
   return (
