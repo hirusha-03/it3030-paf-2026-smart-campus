@@ -16,9 +16,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BookingRequestDTO {
 
-    @NotNull(message = "userId is required")
-    private Long userId;
-
     @NotEmpty(message = "resourceIds must not be empty")
     private List<Long> resourceIds;
 

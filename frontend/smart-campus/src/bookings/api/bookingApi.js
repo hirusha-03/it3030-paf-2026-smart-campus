@@ -6,105 +6,9 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
 });
 
-const TOKEN_KEYS = [
-  "token",
-  "jwt",
-  "JwtToken",
-  "accessToken",
-  "authToken",
-  "id_token",
-];
-
-const AUTH_OBJECT_KEYS = [
-  "auth",
-  "authData",
-  "user",
-  "currentUser",
-  "loginResponse",
-  "authResponse",
-];
-
-function normalizeToken(rawToken) {
-  if (typeof rawToken !== "string") {
-    return "";
-  }
-
-  const trimmed = rawToken.trim();
-  if (!trimmed) {
-    return "";
-  }
-
-  return trimmed.toLowerCase().startsWith("bearer ") ? trimmed.slice(7).trim() : trimmed;
-}
-
-function readTokenFromStorage(storage) {
-  for (const key of TOKEN_KEYS) {
-    const value = storage.getItem(key);
-    const normalized = normalizeToken(value);
-    if (normalized) {
-      return normalized;
-    }
-  }
-
-  for (const key of AUTH_OBJECT_KEYS) {
-    const raw = storage.getItem(key);
-    if (!raw) {
-      continue;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      const normalized =
-        normalizeToken(parsed?.token) ||
-        normalizeToken(parsed?.jwt) ||
-        normalizeToken(parsed?.JwtToken) ||
-        normalizeToken(parsed?.accessToken);
-
-      if (normalized) {
-        return normalized;
-      }
-    } catch {
-      // Ignore non-JSON values.
-    }
-  }
-
-  return "";
-}
-
-function getAuthToken() {
-  return readTokenFromStorage(localStorage) || readTokenFromStorage(sessionStorage);
-}
-
-function persistTokenFromUrl() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const url = new URL(window.location.href);
-  const queryToken =
-    url.searchParams.get("token") ||
-    url.searchParams.get("jwt") ||
-    url.searchParams.get("accessToken");
-
-  const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
-  const hashToken =
-    hashParams.get("token") ||
-    hashParams.get("jwt") ||
-    hashParams.get("accessToken");
-
-  const token = normalizeToken(queryToken || hashToken);
-  if (!token) {
-    return;
-  }
-
-  localStorage.setItem("token", token);
-}
-
-persistTokenFromUrl();
-
 apiClient.interceptors.request.use(
   (config) => {
-    const token = getAuthToken();
+    const token = localStorage.getItem('JwtToken');
 
     if (token) {
       config.headers = config.headers || {};
@@ -118,7 +22,8 @@ apiClient.interceptors.request.use(
 
 export async function createBooking(bookingData) {
   try {
-    const response = await apiClient.post("/bookings", bookingData);
+    const { userId, ...payload } = bookingData || {};
+    const response = await apiClient.post("/bookings", payload);
     return response.data;
   } catch (error) {
     console.error("createBooking failed:", error);

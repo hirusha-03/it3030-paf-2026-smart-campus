@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createBooking, getAvailableResources } from "../api/bookingApi";
 import BookingForm from "../components/BookingForm";
 import ResourceCard from "../components/ResourceCard";
@@ -46,35 +46,6 @@ function mapResourceForUi(resource) {
   };
 }
 
-function getCurrentUserIdFromStorage() {
-  const storageKeys = ["auth", "authData", "loginResponse", "authResponse", "user"];
-
-  for (const key of storageKeys) {
-    const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
-    if (!raw) {
-      continue;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      const userId =
-        parsed?.userId ||
-        parsed?.user?.userId ||
-        parsed?.user?.id ||
-        parsed?.id;
-
-      const asNumber = Number(userId);
-      if (Number.isInteger(asNumber) && asNumber > 0) {
-        return asNumber;
-      }
-    } catch {
-      // Ignore malformed auth payload values.
-    }
-  }
-
-  return null;
-}
-
 function BookingPage() {
   const [resources, setResources] = useState(FALLBACK_RESOURCES);
   const [selectedResourceId, setSelectedResourceId] = useState(FALLBACK_RESOURCES[0].id);
@@ -82,7 +53,6 @@ function BookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const currentUserId = useMemo(() => getCurrentUserIdFromStorage(), []);
   const selectedResource =
     resources.find((resource) => resource.id === selectedResourceId) || resources[0];
 
@@ -186,7 +156,6 @@ function BookingPage() {
               onResourceChange={handleResourceChange}
               onSubmit={handleBookingSubmit}
               isSubmitting={isSubmitting}
-              currentUserId={currentUserId}
             />
             {isLoadingResources && (
               <p className="mt-3 text-xs text-slate-500">Loading resources from server...</p>
