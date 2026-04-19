@@ -1,6 +1,7 @@
 package com.smart.backend.TicketMgmt.service;
 
 import com.smart.backend.TicketMgmt.dto.*;
+import com.smart.backend.TicketMgmt.enums.TicketStatus;
 import com.smart.backend.TicketMgmt.model.Attachment;
 import com.smart.backend.TicketMgmt.model.Comment;
 import com.smart.backend.TicketMgmt.model.Ticket;
@@ -55,8 +56,10 @@ public class TicketService {
     public List<TicketResponseDto> getTicketsForUser(Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         List<Ticket> tickets;
-        if (hasRole(user, "ADMIN") || hasRole(user, "TECHNICIAN")) {
+        if (hasRole(user, "ADMIN")) {
             tickets = ticketRepo.findAll();
+        } else if (hasRole(user, "TECHNICIAN")) {
+            tickets = ticketRepo.findByAssignedTo(user); 
         } else {
             tickets = ticketRepo.findByCreatedBy(user);
         }
@@ -69,31 +72,50 @@ public class TicketService {
     }
 
     public TicketResponseDto assignTicket(Long ticketId, TicketAssignDto dto, Long adminId) {
-        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
-        if (!hasRole(admin, "ADMIN")) {
-            throw new IllegalStateException("Only ADMIN users can assign tickets");
-        }
-        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-        Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
-        ticket.setAssignedTo(technician);
-        ticket = ticketRepo.save(ticket);
-        return mapToResponse(ticket);
+    Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+    if (!hasRole(admin, "ADMIN")) {
+        throw new IllegalStateException("Only ADMIN users can assign tickets");
     }
-
+    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+    Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
+    
+    // validate the assignee is actually a technician
+    if (!hasRole(technician, "TECHNICIAN")) {
+        throw new IllegalArgumentException("Assigned user must have TECHNICIAN role");
+    }
+    
+    ticket.setAssignedTo(technician);
+    ticket = ticketRepo.save(ticket);
+    return mapToResponse(ticket);
+}
     public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
-        Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
-        if (!hasRole(tech, "TECHNICIAN") && !hasRole(tech, "ADMIN")) {
-            throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
-        }
-        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-        ticket.setStatus(dto.getStatus());
-        if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
-            ticket.setResolutionNotes(dto.getResolutionNotes());
-        }
-        ticket = ticketRepo.save(ticket);
-        return mapToResponse(ticket);
+    Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
+    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+    if (!hasRole(tech, "TECHNICIAN") && !hasRole(tech, "ADMIN")) {
+        throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
     }
 
+    if (hasRole(tech, "TECHNICIAN")) {
+        if (ticket.getAssignedTo() == null ||
+            ticket.getAssignedTo().getUserId() != techId.intValue()) {
+            throw new IllegalStateException("You can only update tickets assigned to you");
+        }
+    }
+
+    ticket.setStatus(dto.getStatus());
+
+    // Only allow resolution notes when actually resolving/closing
+    if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
+        if (dto.getStatus() == TicketStatus.RESOLVED || dto.getStatus() == TicketStatus.CLOSED) {
+            ticket.setResolutionNotes(dto.getResolutionNotes());
+        } else {
+            throw new IllegalArgumentException("Resolution notes can only be added when status is RESOLVED or CLOSED");
+        }
+    }
+
+    return mapToResponse(ticketRepo.save(ticket));
+}
     public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
         Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
         if (!hasRole(admin, "ADMIN")) {
