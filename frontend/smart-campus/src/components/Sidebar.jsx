@@ -5,11 +5,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
 
   const navItems = [
-    { name: 'Dashboard',  icon: <LayoutDashboard size={18} />, path: '/dashboard' },
-    { name: 'Facilities', icon: <Building2 size={18} />,       path: '/facilities' },
-    { name: 'Bookings',   icon: <CalendarRange size={18} />,   path: '/bookings' },
-    { name: 'Tickets',    icon: <Ticket size={18} />,          path: '/tickets' },
-    { name: 'Analytics',  icon: <PieChart size={18} />,        path: '/analytics' },
+    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
+    { name: 'Facilities', icon: <Building2 size={20} />, path: '/facilities' },
+    { name: 'Bookings', icon: <CalendarRange size={20} />, path: '/admin-bookings' },
+    { name: 'Tickets', icon: <Ticket size={20} />, path: '/tickets' },
+    { name: 'Analytics', icon: <PieChart size={20} />, path: '/analytics', adminOnly: true },
   ];
 
   const isActive = (path) => location.pathname === path;
