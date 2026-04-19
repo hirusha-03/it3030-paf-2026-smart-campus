@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { createBooking, getAvailableResources } from "../api/bookingApi";
 import BookingForm from "../components/BookingForm";
 import ResourceCard from "../components/ResourceCard";
@@ -28,6 +29,7 @@ function mapResourceForUi(resource) {
 }
 
 function BookingPage() {
+  const navigate = useNavigate();
   const [resources, setResources] = useState([]);
   const [selectedResourceId, setSelectedResourceId] = useState(null);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
@@ -93,6 +95,7 @@ function BookingPage() {
     try {
       await createBooking(payload);
       setSuccessMessage("Booking successful!");
+      navigate("/my-bookings");
     } catch (error) {
       const backendMessage =
         error?.response?.data?.message ||
