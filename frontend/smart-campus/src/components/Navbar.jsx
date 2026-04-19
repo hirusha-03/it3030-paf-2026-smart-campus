@@ -5,7 +5,7 @@ const navLinks = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Resources' },
   { label: 'Booking', to: '/bookings' },
-  { label: 'MyBookings' },
+  { label: 'My Bookings', to: '/my-bookings' },
 ];
 
 const Navbar = () => {

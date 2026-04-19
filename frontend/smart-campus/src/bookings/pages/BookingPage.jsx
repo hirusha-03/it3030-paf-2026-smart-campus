@@ -3,6 +3,7 @@ import { createBooking } from "../api/bookingApi";
 import BookingForm from "../components/BookingForm";
 import ResourceCard from "../components/ResourceCard";
 import Navbar from "../../components/Navbar";
+import Footer from "../../components/Footer";
 
 const DUMMY_RESOURCES = [
   {
@@ -64,10 +65,10 @@ function BookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <header className="mb-8 text-center sm:text-left">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
             Request Campus Resource
@@ -108,6 +109,8 @@ function BookingPage() {
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
