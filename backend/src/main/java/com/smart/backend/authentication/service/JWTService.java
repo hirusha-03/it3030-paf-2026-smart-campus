@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class JWTService implements UserDetailsService {
@@ -57,21 +58,32 @@ public class JWTService implements UserDetailsService {
         return authorities;
     }
 
-    public LoginResponse createJWTToken(LoginRequest loginRequest) throws Exception{
-        String username = loginRequest.getUsername();
-        String userPassword = loginRequest.getUserPassword();
+    public LoginResponse createJWTToken(LoginRequest loginRequest) throws Exception {
+        String username  = loginRequest.getUsername();
+        String password  = loginRequest.getUserPassword();
 
-        authenticate(username, userPassword);
+        authenticate(username, password);
+
+        Users user = userRepo.findByUserName(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
         UserDetails userDetails = loadUserByUsername(username);
-        String newGeneratedToken = jwtUtil.generateToken(userDetails);
-        Users user = userRepo.findByUserName(username).get();
+        String token = jwtUtil.generateToken(userDetails);
 
-        LoginResponse loginResponse = new LoginResponse(
-                user,
-                newGeneratedToken
+        //  Extract role names only — no password exposed
+        Set<String> roles = user.getRole().stream()
+                .map(role -> role.getRoleName())
+                .collect(Collectors.toSet());
+
+        return new LoginResponse(
+                token,
+                user.getUserName(),
+                user.getUserFirstName(),
+                user.getUserLastName(),
+                user.getEmail(),
+                user.getContactNumber(),
+                roles
         );
-
-        return loginResponse;
     }
 
     private void authenticate(String userName, String userPassword) throws Exception {
