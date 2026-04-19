@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { getAllBookings, updateBookingStatus } from "../api/bookingApi";
 import BookingTable from "../components/BookingTable";
 import ReviewModal from "../components/ReviewModal";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
 
 const FILTER_OPTIONS = ["All", "Pending", "Approved", "Rejected"];
 
@@ -123,10 +121,7 @@ function AdminBookingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar />
-
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-7xl px-2 py-2 sm:px-4 sm:py-4">
         <header className="mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
             Booking Management Dashboard
@@ -171,7 +166,7 @@ function AdminBookingsPage() {
         ) : (
           <BookingTable bookings={filteredBookings} onReviewClick={handleReviewClick} />
         )}
-      </main>
+      
 
       <ReviewModal
         booking={selectedBooking}
@@ -186,8 +181,6 @@ function AdminBookingsPage() {
           Updating booking status...
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }
