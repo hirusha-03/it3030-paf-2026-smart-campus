@@ -22,8 +22,7 @@ apiClient.interceptors.request.use(
 
 export async function createBooking(bookingData) {
   try {
-    const { userId, ...payload } = bookingData || {};
-    const response = await apiClient.post("/bookings", payload);
+    const response = await apiClient.post("/bookings", bookingData || {});
     return response.data;
   } catch (error) {
     console.error("createBooking failed:", error);
@@ -64,6 +63,16 @@ export async function getUserBookings(userId) {
     return response.data;
   } catch (error) {
     console.error("getUserBookings failed:", error);
+    throw error;
+  }
+}
+
+export async function getMyBookings() {
+  try {
+    const response = await apiClient.get("/bookings/me");
+    return response.data;
+  } catch (error) {
+    console.error("getMyBookings failed:", error);
     throw error;
   }
 }

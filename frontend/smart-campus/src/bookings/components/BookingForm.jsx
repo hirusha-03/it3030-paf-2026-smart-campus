@@ -8,6 +8,26 @@ const initialFormState = {
   expectedAttendees: "",
 };
 
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== "string") {
+    return null;
+  }
+
+  const tokenParts = token.split(".");
+  if (tokenParts.length < 2) {
+    return null;
+  }
+
+  try {
+    const base64 = tokenParts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const normalized = base64 + "=".repeat((4 - (base64.length % 4 || 4)) % 4);
+    const json = atob(normalized);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 function BookingForm({
   resources,
   selectedResourceId,
@@ -35,7 +55,14 @@ function BookingForm({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const token = localStorage.getItem("JwtToken");
+    const decoded = decodeJwtPayload(token);
+    const loggedInUserId = Number(decoded?.id ?? decoded?.userId ?? decoded?.sub);
+
     const payload = {
+      ...(Number.isFinite(loggedInUserId) && loggedInUserId > 0 ? { userId: loggedInUserId } : {}),
+      // If JwtToken does not contain a numeric user ID claim (id/userId/sub),
+      // backend should expose it via token claims or provide /api/users/me endpoint.
       resourceIds: [selectedResourceId],
       date: formData.date,
       startTime: normalizeTime(formData.startTime),

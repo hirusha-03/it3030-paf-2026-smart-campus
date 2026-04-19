@@ -79,6 +79,14 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
+    public List<BookingResponseDTO> getBookingsForAuthenticatedUser(String authenticatedUsername) {
+        Users user = userRepo.findByUserName(authenticatedUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+
+        return getBookingsByUser((long) user.getUserId());
+    }
+
+    @Transactional(readOnly = true)
     public List<BookingResponseDTO> getAllBookings() {
         return bookingRepository.findAll().stream()
                 .map(this::toResponseDTO)

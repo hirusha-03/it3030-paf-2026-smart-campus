@@ -5,25 +5,6 @@ import ResourceCard from "../components/ResourceCard";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
-const FALLBACK_RESOURCES = [
-  {
-    id: 1,
-    name: "Lecture Hall A",
-    type: "Lecture Hall",
-    capacity: 120,
-    features: ["Projector", "Smart Board", "PA System"],
-    imageUrl: "https://picsum.photos/seed/lecture-hall-a/600/360",
-  },
-  {
-    id: 2,
-    name: "Meeting Room 1",
-    type: "Meeting Room",
-    capacity: 18,
-    features: ["Video Conferencing", "Whiteboard", "Air Conditioning"],
-    imageUrl: "https://picsum.photos/seed/meeting-room-1/600/360",
-  },
-];
-
 function parseFeatureList(amenities) {
   if (typeof amenities !== "string" || !amenities.trim()) {
     return [];
@@ -47,14 +28,14 @@ function mapResourceForUi(resource) {
 }
 
 function BookingPage() {
-  const [resources, setResources] = useState(FALLBACK_RESOURCES);
-  const [selectedResourceId, setSelectedResourceId] = useState(FALLBACK_RESOURCES[0].id);
+  const [resources, setResources] = useState([]);
+  const [selectedResourceId, setSelectedResourceId] = useState(null);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const selectedResource =
-    resources.find((resource) => resource.id === selectedResourceId) || resources[0];
+    resources.find((resource) => resource.id === selectedResourceId) || null;
 
   useEffect(() => {
     let isMounted = true;
@@ -70,12 +51,16 @@ function BookingPage() {
         if (isMounted && mapped.length > 0) {
           setResources(mapped);
           setSelectedResourceId(mapped[0].id);
+        } else if (isMounted) {
+          setResources([]);
+          setSelectedResourceId(null);
+          setErrorMessage("No resources available right now.");
         }
       } catch {
         if (isMounted) {
-          // Keep fallback resources so booking flow remains usable during API issues.
-          setResources(FALLBACK_RESOURCES);
-          setSelectedResourceId(FALLBACK_RESOURCES[0].id);
+          setResources([]);
+          setSelectedResourceId(null);
+          setErrorMessage("Unable to load resources from database right now.");
         }
       } finally {
         if (isMounted) {
@@ -96,6 +81,11 @@ function BookingPage() {
   };
 
   const handleBookingSubmit = async (payload) => {
+    if (!selectedResourceId) {
+      setErrorMessage("No resource selected. Please wait for resources to load.");
+      return;
+    }
+
     setSuccessMessage("");
     setErrorMessage("");
     setIsSubmitting(true);
@@ -143,19 +133,25 @@ function BookingPage() {
 
         <div className="grid items-start gap-8 lg:grid-cols-5">
           <section className="lg:col-span-2">
-            <ResourceCard
-              resource={selectedResource || resources[0]}
-              isSelected
-            />
+            {selectedResource ? (
+              <ResourceCard
+                resource={selectedResource}
+                isSelected
+              />
+            ) : (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+                Resource details will appear after loading from database.
+              </div>
+            )}
           </section>
 
           <div className="lg:col-span-3">
             <BookingForm
               resources={resources}
-              selectedResourceId={selectedResourceId}
+              selectedResourceId={selectedResourceId || ""}
               onResourceChange={handleResourceChange}
               onSubmit={handleBookingSubmit}
-              isSubmitting={isSubmitting}
+              isSubmitting={isSubmitting || isLoadingResources || !selectedResourceId}
             />
             {isLoadingResources && (
               <p className="mt-3 text-xs text-slate-500">Loading resources from server...</p>

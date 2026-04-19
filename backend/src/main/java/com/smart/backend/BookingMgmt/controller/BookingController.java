@@ -61,6 +61,11 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<List<BookingResponseDTO>> getBookingsForCurrentUser(Principal principal) {
+        return ResponseEntity.ok(bookingService.getBookingsForAuthenticatedUser(principal.getName()));
+    }
+
     @GetMapping
     public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
         return ResponseEntity.ok(bookingService.getAllBookings());
