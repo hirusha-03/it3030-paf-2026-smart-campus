@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { getAvailableResources } from '../api/ticketService';
+import { getAvailableResources, getBookingsByUser } from '../api/ticketService';
 
-const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
+const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,9 +16,10 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
   });
 
   const [resources, setResources] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [resourcesLoading, setResourcesLoading] = useState(false);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
 
-  // Fetch available resources when modal opens
   useEffect(() => {
     if (isOpen) {
       setResourcesLoading(true);
@@ -26,8 +27,16 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
         .then(setResources)
         .catch(() => alert('Failed to load resources'))
         .finally(() => setResourcesLoading(false));
+
+      if (userId) {
+        setBookingsLoading(true);
+        getBookingsByUser(userId)
+          .then(setBookings)
+          .catch(() => alert('Failed to load bookings'))
+          .finally(() => setBookingsLoading(false));
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -83,6 +92,7 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
             <input type="text" name="title" value={formData.title}
@@ -129,11 +139,13 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
             <label className="block text-sm font-medium text-slate-700 mb-1">Contact Details</label>
             <input type="text" name="contactDetails" value={formData.contactDetails}
               onChange={handleChange} required
-              placeholder={formData.contactMethod === 'PHONE' ? 'Phone number' : formData.contactMethod === 'EMAIL' ? 'Email address' : 'Location/Details'}
+              placeholder={
+                formData.contactMethod === 'PHONE' ? 'Phone number' :
+                formData.contactMethod === 'EMAIL' ? 'Email address' : 'Location/Details'
+              }
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
           </div>
 
-          {/* Resource dropdown — replaces raw ID input */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Related Resource <span className="text-slate-400 font-normal">(Optional)</span>
@@ -147,21 +159,35 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
                 <option value="">-- None --</option>
                 {resources.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name} — {r.location} {r.building ? `(${r.building})` : ''}
+                    {r.name} — {r.location}{r.building ? ` (${r.building})` : ''}
                   </option>
                 ))}
               </select>
             )}
           </div>
 
-          {/* Keep booking ID as text for now — will fix when you share booking files */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Related Booking ID <span className="text-slate-400 font-normal">(Optional)</span>
+              Related Booking <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
-            <input type="number" name="relatedBookingId" value={formData.relatedBookingId}
-              onChange={handleChange} placeholder="Enter booking ID if related"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+            {bookingsLoading ? (
+              <p className="text-sm text-slate-500">Loading bookings...</p>
+            ) : (
+              <select name="relatedBookingId" value={formData.relatedBookingId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                <option value="">-- None --</option>
+                {bookings.length === 0 ? (
+                  <option disabled>No bookings found</option>
+                ) : (
+                  bookings.map((b) => (
+                    <option key={b.bookingId} value={b.bookingId}>
+                      #{b.bookingId} — {b.date} ({b.startTime} to {b.endTime}) — {b.purpose}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
           </div>
 
           <div>
@@ -193,6 +219,7 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit }) => {
               Create Ticket
             </button>
           </div>
+
         </form>
       </div>
     </div>

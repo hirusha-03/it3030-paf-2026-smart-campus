@@ -14,6 +14,9 @@ const resourceApi = axios.create({
   baseURL: 'http://localhost:8080/api/resources',
 });
 
+const bookingApi = axios.create({
+  baseURL: 'http://localhost:8080/api/bookings',
+});
 
 
 const addAuthInterceptor = (api) => {
@@ -50,6 +53,7 @@ const addAuthInterceptor = (api) => {
 addAuthInterceptor(ticketApi);
 addAuthInterceptor(authApi);
 addAuthInterceptor(resourceApi);
+addAuthInterceptor(bookingApi);
 
 
 export const getCurrentUser = async () => {
@@ -172,6 +176,16 @@ export const getAvailableResources = async () => {
     return response.data;
   } catch (error) {
     console.error('getAvailableResources failed:', error);
+    throw error;
+  }
+};
+
+export const getBookingsByUser = async (userId) => {
+  try {
+    const response = await bookingApi.get(`/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('getBookingsByUser failed:', error);
     throw error;
   }
 };
