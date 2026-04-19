@@ -19,9 +19,18 @@ export function SignIn() {
       const res = await axios.post(
         "http://localhost:8080/api/v1/authentication", form
       );
-      localStorage.setItem("accessToken", res.data.accessToken);
-      localStorage.setItem("refreshToken", res.data.refreshToken);
-      navigate("/dashboard");
+      localStorage.setItem("token", res.data.jwtToken);
+
+      localStorage.setItem("user", JSON.stringify({
+      userName:      res.data.userName,
+      userFirstName: res.data.userFirstName,
+      userLastName:  res.data.userLastName,
+      contactNumber: res.data.contactNumber,
+      email:         res.data.email,
+      roles:         res.data.roles,
+    }));
+
+      navigate("/profile");
     } catch (err) {
       setError("Invalid username or password.");
     } finally {
