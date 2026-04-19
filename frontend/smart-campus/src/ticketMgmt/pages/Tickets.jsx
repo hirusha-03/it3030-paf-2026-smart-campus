@@ -152,6 +152,7 @@ const Tickets = () => {
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
         onSubmit={handleCreateTicket}
+        userId={userId}
       />
 
       <AssignModal
