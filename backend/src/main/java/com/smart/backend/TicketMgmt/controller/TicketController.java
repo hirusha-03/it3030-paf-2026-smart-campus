@@ -43,21 +43,21 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getTicketById(id));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('Admin')")
     @PutMapping("/{id}/assign")
     public ResponseEntity<TicketResponseDto> assignTicket(@PathVariable Long id, @RequestBody TicketAssignDto dto) {
         Long adminId = getCurrentUserId();
         return ResponseEntity.ok(ticketService.assignTicket(id, dto, adminId));
     }
 
-    @PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
+    @PreAuthorize("hasAnyRole('Technician','Admin')")
     @PutMapping("/{id}/status")
     public ResponseEntity<TicketResponseDto> updateStatus(@PathVariable Long id, @RequestBody TicketUpdateDto dto) {
         Long techId = getCurrentUserId();
         return ResponseEntity.ok(ticketService.updateStatus(id, dto, techId));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('Admin')")
     @PutMapping("/{id}/reject")
     public ResponseEntity<TicketResponseDto> rejectTicket(@PathVariable Long id, @RequestBody TicketRejectDto dto) {
         Long adminId = getCurrentUserId();

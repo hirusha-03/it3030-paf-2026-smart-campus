@@ -139,13 +139,13 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 disabled={!isStaff(userRole)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              >
+                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                 <option value="OPEN">Open</option>
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="RESOLVED">Resolved</option>
                 <option value="CLOSED">Closed</option>
-                <option value="REJECTED">Rejected</option>
+                {/* Only admins can reject — use the Reject button instead */}
+                {isAdmin(userRole) && <option value="REJECTED">Rejected</option>}
               </select>
               {isStaff(userRole) && (
                 <button onClick={handleUpdateStatus} className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg">

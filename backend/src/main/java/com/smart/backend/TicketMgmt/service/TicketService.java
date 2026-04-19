@@ -58,7 +58,7 @@ public class TicketService {
         if (hasRole(user, "ADMIN")) {
             tickets = ticketRepo.findAll();
         } else if (hasRole(user, "TECHNICIAN")) {
-            tickets = ticketRepo.findByAssignedTo(user); // 🔥 KEY CHANGE
+            tickets = ticketRepo.findByAssignedTo(user); 
         } else {
             tickets = ticketRepo.findByCreatedBy(user);
         }
@@ -71,17 +71,22 @@ public class TicketService {
     }
 
     public TicketResponseDto assignTicket(Long ticketId, TicketAssignDto dto, Long adminId) {
-        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
-        if (!hasRole(admin, "ADMIN")) {
-            throw new IllegalStateException("Only ADMIN users can assign tickets");
-        }
-        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-        Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
-        ticket.setAssignedTo(technician);
-        ticket = ticketRepo.save(ticket);
-        return mapToResponse(ticket);
+    Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+    if (!hasRole(admin, "ADMIN")) {
+        throw new IllegalStateException("Only ADMIN users can assign tickets");
     }
-
+    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+    Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
+    
+    // validate the assignee is actually a technician
+    if (!hasRole(technician, "TECHNICIAN")) {
+        throw new IllegalArgumentException("Assigned user must have TECHNICIAN role");
+    }
+    
+    ticket.setAssignedTo(technician);
+    ticket = ticketRepo.save(ticket);
+    return mapToResponse(ticket);
+}
     public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
     Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
     Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
@@ -93,11 +98,11 @@ public class TicketService {
 
     // technician can only update assigned ticket
     if (hasRole(tech, "TECHNICIAN")) {
-        if (ticket.getAssignedTo() == null ||
-            ticket.getAssignedTo().getUserId() != tech.getUserId()) {
-            throw new IllegalStateException("You can only update tickets assigned to you");
-        }
+    if (ticket.getAssignedTo() == null ||
+        !Objects.equals((long) ticket.getAssignedTo().getUserId(), techId)) {
+        throw new IllegalStateException("You can only update tickets assigned to you");
     }
+}
 
     ticket.setStatus(dto.getStatus());
 
