@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Send, RefreshCw, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { getTicketById, addComment, updateTicketStatus, rejectTicket, updateComment, deleteComment } from '../api/ticketService';
-import { isAdmin, isStaff } from '../utils/roleUtils';
+import { isAdmin, isStaff, isTechnician } from '../utils/roleUtils';
 import RejectModal from './RejectModal';
 import EditCommentModal from './EditCommentModal';
 
@@ -31,12 +31,35 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
     }
   };
 
+  // Returns allowed next statuses based on current ticket status and role
+  const getAllowedStatuses = () => {
+    if (!ticket) return [];
+
+    // Terminal states — no transitions allowed
+    if (ticket.status === 'CLOSED' || ticket.status === 'REJECTED') return [];
+
+    // OPEN — admin handles via assign (auto IN_PROGRESS) or reject button
+    // No dropdown transitions from OPEN
+    if (ticket.status === 'OPEN') return [];
+
+    if (ticket.status === 'IN_PROGRESS') return ['IN_PROGRESS', 'RESOLVED'];
+    if (ticket.status === 'RESOLVED')    return ['RESOLVED', 'CLOSED'];
+
+    return [];
+  };
+
+  const getAllowedStatusLabels = {
+    'IN_PROGRESS': 'In Progress',
+    'RESOLVED':    'Resolved',
+    'CLOSED':      'Closed',
+  };
+
   const handleAddComment = async () => {
     if (!comment.trim()) return;
     try {
       await addComment(ticketId, comment);
       setComment('');
-      fetchTicket(); // Refresh
+      fetchTicket();
     } catch (error) {
       console.error('Failed to add comment:', error);
       alert('Failed to add comment: ' + (error.message || 'Network error'));
@@ -44,20 +67,25 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   };
 
   const handleUpdateStatus = async () => {
-    try {
-      await updateTicketStatus(ticketId, status, resolutionNotes || null);
-      fetchTicket(); // Refresh
-    } catch (error) {
-      console.error('Failed to update status:', error);
-      alert('Failed to update status: ' + (error.message || 'Network error'));
-    }
-  };
+  // Guard — don't send if status hasn't changed
+  if (status === ticket.status) {
+    alert('Please select a different status to update.');
+    return;
+  }
+  try {
+    await updateTicketStatus(ticketId, status, resolutionNotes || null);
+    fetchTicket();
+  } catch (error) {
+    console.error('Failed to update status:', error);
+    alert('Failed to update status: ' + (error.response?.data?.message || error.message || 'Network error'));
+  }
+};
 
   const handleRejectTicket = async (reason) => {
     try {
       await rejectTicket(ticketId, reason);
       setIsRejectModalOpen(false);
-      fetchTicket(); // Refresh
+      fetchTicket();
     } catch (error) {
       console.error('Failed to reject ticket:', error);
       alert('Failed to reject ticket: ' + (error.message || 'Network error'));
@@ -75,7 +103,7 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
       await updateComment(ticketId, editingCommentId, newMessage);
       setIsEditCommentOpen(false);
       setEditingCommentId(null);
-      fetchTicket(); // Refresh
+      fetchTicket();
     } catch (error) {
       console.error('Failed to update comment:', error);
       alert('Failed to update comment: ' + (error.message || 'Network error'));
@@ -87,15 +115,28 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
     try {
       await deleteComment(ticketId, commentId);
       setDeleteConfirmId(null);
-      fetchTicket(); // Refresh
+      fetchTicket();
     } catch (error) {
       console.error('Failed to delete comment:', error);
       alert('Failed to delete comment: ' + (error.message || 'Network error'));
     }
   };
 
+  const getStatusBadgeClass = (s) => {
+    switch (s) {
+      case 'OPEN':        return 'bg-blue-100 text-blue-800';
+      case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800';
+      case 'RESOLVED':    return 'bg-green-100 text-green-800';
+      case 'CLOSED':      return 'bg-gray-100 text-gray-800';
+      case 'REJECTED':    return 'bg-red-100 text-red-800';
+      default:            return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (!ticket) return <div>Loading...</div>;
 
+  const allowedStatuses = getAllowedStatuses();
+  const canUpdateStatus = isStaff(userRole) && allowedStatuses.length > 1;
   const isCommentOwner = (commentUserId) => commentUserId === userId;
 
   return (
@@ -109,7 +150,8 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div className="flex justify-between items-start mb-4">
           <h1 className="text-2xl font-bold text-slate-800">{ticket.title}</h1>
-          {isAdmin(userRole) && ticket.status !== 'REJECTED' && (
+          {/* Reject button — admin only, only on OPEN tickets */}
+          {isAdmin(userRole) && ticket.status === 'OPEN' && (
             <button
               onClick={() => setIsRejectModalOpen(true)}
               className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 flex items-center gap-1"
@@ -119,10 +161,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
             </button>
           )}
         </div>
-        
+
         <p className="text-slate-600 mb-6">{ticket.description}</p>
 
-        {/* Status and rejection info */}
+        {/* Rejection reason banner */}
         {ticket.status === 'REJECTED' && ticket.rejectionReason && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm font-semibold text-red-800 mb-2">Rejection Reason:</p>
@@ -132,29 +174,42 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
 
         {/* Main Grid Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pb-6 border-b border-slate-200">
+
+          {/* Status */}
           <div>
             <span className="text-sm font-medium text-slate-500">Status:</span>
             <div className="mt-2 flex items-center gap-2">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                disabled={!isStaff(userRole)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              >
-                {isAdmin(userRole) && <option value="OPEN">Open</option>}
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="RESOLVED">Resolved</option>
-                <option value="CLOSED">Closed</option>
-                {isAdmin(userRole) && <option value="REJECTED">Rejected</option>}
-              </select>
-              {isStaff(userRole) && (
-                <button onClick={handleUpdateStatus} className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg">
-                  <RefreshCw size={18} />
-                </button>
+              {canUpdateStatus ? (
+                <>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {allowedStatuses.map(s => (
+                      <option key={s} value={s}>
+                        {getAllowedStatusLabels[s]}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleUpdateStatus}
+                    disabled={status === ticket.status}
+                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Update status"
+                  >
+                    <RefreshCw size={18} />
+                  </button>
+                </>
+              ) : (
+                // Terminal state or OPEN — just show badge
+                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusBadgeClass(ticket.status)}`}>
+                  {ticket.status.replace('_', ' ')}
+                </span>
               )}
             </div>
           </div>
-          
+
           <div>
             <span className="text-sm font-medium text-slate-500">Priority:</span>
             <p className="mt-2 text-slate-700">{ticket.priority}</p>
@@ -181,20 +236,21 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
           </div>
         </div>
 
-        {/* Resolution Notes */}
+        {/* Resolution Notes input — only when moving to RESOLVED or CLOSED */}
         {isStaff(userRole) && (status === 'RESOLVED' || status === 'CLOSED') && (
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">Resolution Notes</label>
-          <textarea
-            value={resolutionNotes}
-            onChange={(e) => setResolutionNotes(e.target.value)}
-            rows={3}
-            placeholder="Describe what was done to resolve this issue..."
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
-      )}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Resolution Notes</label>
+            <textarea
+              value={resolutionNotes}
+              onChange={(e) => setResolutionNotes(e.target.value)}
+              rows={3}
+              placeholder="Describe what was done to resolve this issue..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        )}
 
+        {/* Resolution Notes display */}
         {ticket.resolutionNotes && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm font-semibold text-green-800 mb-2">Resolution Notes:</p>
@@ -202,6 +258,7 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
           </div>
         )}
 
+        {/* Attachments */}
         {ticket.attachments?.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-slate-800 mb-3">Attachments</h3>
@@ -273,7 +330,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
             placeholder="Add a comment..."
             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
-          <button onClick={handleAddComment} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-1">
+          <button
+            onClick={handleAddComment}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-1"
+          >
             <Send size={16} />
             Send
           </button>

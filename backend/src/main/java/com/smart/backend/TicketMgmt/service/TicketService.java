@@ -76,58 +76,97 @@ public class TicketService {
     if (!hasRole(admin, "ADMIN")) {
         throw new IllegalStateException("Only ADMIN users can assign tickets");
     }
+
     Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+    // Can only assign OPEN tickets
+    if (ticket.getStatus() != TicketStatus.OPEN) {
+        throw new IllegalStateException("Only OPEN tickets can be assigned");
+    }
+
     Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
-    
-    // validate the assignee is actually a technician
-    if (!hasRole(technician, "TECHNICIAN")) {
+    if (!hasRole(technician, "Technician")) {
         throw new IllegalArgumentException("Assigned user must have TECHNICIAN role");
     }
-    
+
     ticket.setAssignedTo(technician);
-    ticket = ticketRepo.save(ticket);
-    return mapToResponse(ticket);
+    // Automatically move to IN_PROGRESS when assigned
+    ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+    return mapToResponse(ticketRepo.save(ticket));
 }
-    public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
+
+public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
     Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
     Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
 
-    if (!hasRole(tech, "TECHNICIAN") && !hasRole(tech, "ADMIN")) {
+    if (!hasRole(tech, "Technician") && !hasRole(tech, "Admin")) {
         throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
     }
 
-    if (hasRole(tech, "TECHNICIAN")) {
+    // Technician can only update their assigned ticket
+    if (hasRole(tech, "Technician")) {
         if (ticket.getAssignedTo() == null ||
             ticket.getAssignedTo().getUserId() != techId.intValue()) {
             throw new IllegalStateException("You can only update tickets assigned to you");
         }
     }
 
-    ticket.setStatus(dto.getStatus());
+    // Terminal states — nobody can change these
+    if (ticket.getStatus() == TicketStatus.CLOSED ||
+        ticket.getStatus() == TicketStatus.REJECTED) {
+        throw new IllegalStateException("Cannot change status of a " + ticket.getStatus() + " ticket");
+    }
 
-    // Only allow resolution notes when actually resolving/closing
+    // Enforce valid transitions
+    TicketStatus current = ticket.getStatus();
+    TicketStatus next = dto.getStatus();
+
+    if (current == next) {
+    return mapToResponse(ticket);
+    }
+
+    boolean validTransition =
+        (current == TicketStatus.IN_PROGRESS && next == TicketStatus.RESOLVED) ||
+        (current == TicketStatus.RESOLVED    && next == TicketStatus.CLOSED);
+
+    if (!validTransition) {
+        throw new IllegalStateException(
+            "Invalid status transition: " + current + " → " + next +
+            ". Allowed: IN_PROGRESS → RESOLVED, RESOLVED → CLOSED"
+        );
+    }
+
+    // Resolution notes only allowed when resolving or closing
     if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
-        if (dto.getStatus() == TicketStatus.RESOLVED || dto.getStatus() == TicketStatus.CLOSED) {
+        if (next == TicketStatus.RESOLVED || next == TicketStatus.CLOSED) {
             ticket.setResolutionNotes(dto.getResolutionNotes());
         } else {
             throw new IllegalArgumentException("Resolution notes can only be added when status is RESOLVED or CLOSED");
         }
     }
 
+    ticket.setStatus(next);
     return mapToResponse(ticketRepo.save(ticket));
 }
-    public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
-        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
-        if (!hasRole(admin, "ADMIN")) {
-            throw new IllegalStateException("Only ADMIN users can reject tickets");
-        }
-        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-        ticket.setStatus(com.smart.backend.TicketMgmt.enums.TicketStatus.REJECTED);
-        ticket.setRejectionReason(dto.getRejectionReason());
-        ticket = ticketRepo.save(ticket);
-        return mapToResponse(ticket);
+
+public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
+    Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+    if (!hasRole(admin, "Admin")) {
+        throw new IllegalStateException("Only ADMIN users can reject tickets");
     }
 
+    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+    // Can only reject OPEN tickets
+    if (ticket.getStatus() != TicketStatus.OPEN) {
+        throw new IllegalStateException("Only OPEN tickets can be rejected");
+    }
+
+    ticket.setStatus(TicketStatus.REJECTED);
+    ticket.setRejectionReason(dto.getRejectionReason());
+    return mapToResponse(ticketRepo.save(ticket));
+}
     public void addComment(Long ticketId, CommentCreateDto dto, Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
