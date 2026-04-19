@@ -129,7 +129,7 @@ function AdminBookingsPage() {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <header className="mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-            Admin Dashboard: Booking Requests
+            Booking Management Dashboard
           </h1>
           <p className="mt-2 text-slate-600">
             Review incoming booking requests, then approve or reject with reason.
