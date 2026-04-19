@@ -1,11 +1,15 @@
 package com.smart.backend.authentication.controller;
 
+import com.smart.backend.TicketMgmt.dto.UserSummaryDto;
 import com.smart.backend.authentication.dto.SignupRequest;
 import com.smart.backend.authentication.dto.UserProfileResponse;
 import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.service.UserService;
 import com.smart.backend.authentication.util.StandardResponse;
 import jakarta.annotation.PostConstruct;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,5 +49,11 @@ public class UsersController {
 
         return ResponseEntity.ok(userService.getUserProfile(authentication.getName()));
     }
+
+    @PreAuthorize("hasRole('Admin')")
+    @GetMapping("/technicians")
+    public ResponseEntity<List<UserSummaryDto>> getTechnicians() {
+        return ResponseEntity.ok(userService.getUsersByRole("Technician"));
+}
 
 }
