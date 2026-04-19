@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import Tickets from './ticketMgmt/pages/Tickets';
 import BookingPage from './bookings/pages/BookingPage';
 import Bookings from './bookings/pages/Bookings';
+import AdminBookingsPage from './bookings/pages/AdminBookingsPage';
 
 function App() {
   return (
@@ -34,6 +35,10 @@ function App() {
         <Route
           path="/my-bookings"
           element={<Bookings />}
+        />
+        <Route
+          path="/admin-bookings"
+          element={<AdminBookingsPage />}
         />
       </Routes>
     </Router>
