@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -49,6 +50,7 @@ public class WebSecurityConfiguration {
 
         http
                 .csrf(csrf -> csrf.disable()) // disable CSRF (for APIs)
+                .cors(Customizer.withDefaults()) // add by thiyangi
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() //  Allow CORS preflight requests
                         .requestMatchers(
