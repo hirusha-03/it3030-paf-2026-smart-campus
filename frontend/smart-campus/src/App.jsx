@@ -1,17 +1,50 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
+import HomePage from './pages/HomePage';
 import Tickets from './ticketMgmt/pages/Tickets';
+import BookingPage from './bookings/pages/BookingPage';
+import Bookings from './bookings/pages/Bookings';
+import AdminBookingsPage from './bookings/pages/AdminBookingsPage';
 
 function App() {
   return (
     <Router>
-      <MainLayout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/tickets" element={<Tickets />} />
-        </Routes>
-      </MainLayout>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/dashboard"
+          element={(
+            <MainLayout>
+              <Home />
+            </MainLayout>
+          )}
+        />
+        <Route
+          path="/tickets"
+          element={(
+            <MainLayout>
+              <Tickets />
+            </MainLayout>
+          )}
+        />
+        <Route
+          path="/bookings"
+          element={<BookingPage />}
+        />
+        <Route
+          path="/my-bookings"
+          element={<Bookings />}
+        />
+        <Route
+          path="/admin-bookings"
+          element={(
+            <MainLayout>
+              <AdminBookingsPage />
+            </MainLayout>
+          )}
+        />
+      </Routes>
     </Router>
   );
 }

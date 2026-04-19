@@ -5,6 +5,10 @@ import com.smart.backend.BookingMgmt.dto.BookingResponseDTO;
 import com.smart.backend.BookingMgmt.model.Booking;
 import com.smart.backend.BookingMgmt.model.Booking.BookingStatus;
 import com.smart.backend.BookingMgmt.repo.BookingRepository;
+import com.smart.backend.ResourceMgmt.model.Resource;
+import com.smart.backend.ResourceMgmt.repo.ResourceRepository;
+import com.smart.backend.authentication.entity.Users;
+import com.smart.backend.authentication.repo.UserRepo;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,13 +17,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
+    private final ResourceRepository resourceRepository;
+    private final UserRepo userRepo;
 
-    public BookingService(BookingRepository bookingRepository) {
+    public BookingService(BookingRepository bookingRepository, ResourceRepository resourceRepository, UserRepo userRepo) {
         this.bookingRepository = bookingRepository;
+        this.resourceRepository = resourceRepository;
+        this.userRepo = userRepo;
     }
 
     @Transactional
-    public BookingResponseDTO createBooking(BookingRequestDTO request) {
+    public BookingResponseDTO createBooking(BookingRequestDTO request, String authenticatedUsername) {
+        // Resolve the booking owner from JWT-authenticated principal.
+        Users user = userRepo.findByUserName(authenticatedUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+
+        // Get the resource entities
+        List<Resource> resources = resourceRepository.findAllById(request.getResourceIds());
+
+        // Validate that all requested resources exist
+        if (resources.size() != request.getResourceIds().size()) {
+            throw new IllegalArgumentException("One or more resources not found");
+        }
+
+        // Check for conflicts with each resource
         for (Long resourceId : request.getResourceIds()) {
             boolean conflictExists = bookingRepository.existsByDateAndResourceAndOverlappingTime(
                     request.getDate(),
@@ -34,7 +55,7 @@ public class BookingService {
         }
 
         Booking booking = Booking.builder()
-                .userId(request.getUserId())
+                .user(user)
                 .date(request.getDate())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
@@ -42,7 +63,7 @@ public class BookingService {
                 .expectedAttendees(request.getExpectedAttendees() == null ? 0 : request.getExpectedAttendees())
                 .status(BookingStatus.PENDING)
                 .rejectionReason(null)
-            .resourceIds(request.getResourceIds())
+                .resources(resources)
                 .build();
 
         Booking saved = bookingRepository.save(booking);
@@ -52,9 +73,17 @@ public class BookingService {
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getBookingsByUser(Long userId) {
         return bookingRepository.findAll().stream()
-                .filter(booking -> userId.equals(booking.getUserId()))
+                .filter(booking -> userId.equals((long) booking.getUser().getUserId()))
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookingResponseDTO> getBookingsForAuthenticatedUser(String authenticatedUsername) {
+        Users user = userRepo.findByUserName(authenticatedUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+
+        return getBookingsByUser((long) user.getUserId());
     }
 
     @Transactional(readOnly = true)
@@ -92,8 +121,8 @@ public class BookingService {
     private BookingResponseDTO toResponseDTO(Booking booking) {
         return new BookingResponseDTO(
                 booking.getBookingId(),
-                booking.getUserId(),
-                booking.getResourceIds(),
+                (long) booking.getUser().getUserId(),
+                booking.getResources().stream().map(Resource::getId).toList(),
                 booking.getDate(),
                 booking.getStartTime(),
                 booking.getEndTime(),

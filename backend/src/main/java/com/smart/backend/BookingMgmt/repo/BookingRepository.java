@@ -14,16 +14,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
             SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
             FROM Booking b
-            JOIN b.resourceIds r
+            JOIN b.resources r
             WHERE b.date = :date
-              AND r = :resourceId
+              AND r.id IN :resourceIds
               AND b.startTime < :newEndTime
               AND b.endTime > :newStartTime
               AND b.status NOT IN :excludedStatuses
             """)
     boolean existsByDateAndResourceAndOverlappingTime(
             @Param("date") LocalDate date,
-            @Param("resourceId") Long resourceId,
+            @Param("resourceIds") List<Long> resourceIds,
             @Param("newStartTime") LocalTime newStartTime,
             @Param("newEndTime") LocalTime newEndTime,
             @Param("excludedStatuses") List<BookingStatus> excludedStatuses
@@ -37,7 +37,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     ) {
         return existsByDateAndResourceAndOverlappingTime(
                 date,
-                resourceId,
+                List.of(resourceId),
                 newStartTime,
                 newEndTime,
                 List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED)
