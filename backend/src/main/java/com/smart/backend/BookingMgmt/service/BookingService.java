@@ -27,10 +27,10 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponseDTO createBooking(BookingRequestDTO request) {
-        // Get the user entity
-        Users user = userRepo.findById(request.getUserId().intValue())
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + request.getUserId()));
+    public BookingResponseDTO createBooking(BookingRequestDTO request, String authenticatedUsername) {
+        // Resolve the booking owner from JWT-authenticated principal.
+        Users user = userRepo.findByUserName(authenticatedUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
 
         // Get the resource entities
         List<Resource> resources = resourceRepository.findAllById(request.getResourceIds());
@@ -76,6 +76,14 @@ public class BookingService {
                 .filter(booking -> userId.equals((long) booking.getUser().getUserId()))
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookingResponseDTO> getBookingsForAuthenticatedUser(String authenticatedUsername) {
+        Users user = userRepo.findByUserName(authenticatedUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+
+        return getBookingsByUser((long) user.getUserId());
     }
 
     @Transactional(readOnly = true)

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { deleteBooking, getUserBookings } from '../api/bookingApi';
+import { deleteBooking, getMyBookings } from '../api/bookingApi';
 import BookingCard from '../components/BookingCard';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -10,8 +10,6 @@ function Bookings() {
   const [errorMessage, setErrorMessage] = useState('');
   const [cancelInProgressId, setCancelInProgressId] = useState(null);
 
-  const userId = 1;
-
   useEffect(() => {
     let isMounted = true;
 
@@ -20,7 +18,7 @@ function Bookings() {
       setErrorMessage('');
 
       try {
-        const data = await getUserBookings(userId);
+        const data = await getMyBookings();
         if (isMounted) {
           setBookings(Array.isArray(data) ? data : []);
         }

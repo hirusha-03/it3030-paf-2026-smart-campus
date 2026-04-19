@@ -38,7 +38,11 @@ function App() {
         />
         <Route
           path="/admin-bookings"
-          element={<AdminBookingsPage />}
+          element={(
+            <MainLayout>
+              <AdminBookingsPage />
+            </MainLayout>
+          )}
         />
       </Routes>
     </Router>

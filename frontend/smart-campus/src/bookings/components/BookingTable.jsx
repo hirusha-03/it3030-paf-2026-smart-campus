@@ -71,6 +71,7 @@ function BookingTable({ bookings, onReviewClick }) {
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Resource</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Date</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Time</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Purpose</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Actions</th>
             </tr>
@@ -78,7 +79,7 @@ function BookingTable({ bookings, onReviewClick }) {
           <tbody className="divide-y divide-slate-100 bg-white">
             {bookings.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                   No bookings found for this filter.
                 </td>
               </tr>
@@ -106,6 +107,7 @@ function BookingTable({ bookings, onReviewClick }) {
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
                       {formatTimeRange(booking.startTime, booking.endTime)}
                     </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{booking.purpose || "--"}</td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold tracking-wide ${getStatusClasses(normalizedStatus)}`}
