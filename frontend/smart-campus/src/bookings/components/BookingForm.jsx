@@ -8,7 +8,14 @@ const initialFormState = {
   expectedAttendees: "",
 };
 
-function BookingForm({ resources, selectedResourceId, onResourceChange, onSubmit, isSubmitting }) {
+function BookingForm({
+  resources,
+  selectedResourceId,
+  onResourceChange,
+  onSubmit,
+  isSubmitting,
+  currentUserId,
+}) {
   const [formData, setFormData] = useState(initialFormState);
 
   const handleChange = (event) => {
@@ -30,7 +37,9 @@ function BookingForm({ resources, selectedResourceId, onResourceChange, onSubmit
     event.preventDefault();
 
     const payload = {
-      userId: 1,
+      // Backend should derive user identity from JWT. If current APIs still require userId,
+      // this dynamic value should come from logged-in user profile lookup in a shared auth store.
+      ...(currentUserId ? { userId: currentUserId } : {}),
       resourceIds: [selectedResourceId],
       date: formData.date,
       startTime: normalizeTime(formData.startTime),
