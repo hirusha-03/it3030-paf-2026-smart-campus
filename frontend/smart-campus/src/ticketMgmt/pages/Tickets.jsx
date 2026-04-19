@@ -5,7 +5,7 @@ import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
 import { getTickets, createTicket, assignTicket, getCurrentUser } from '../api/ticketService';
-import { normalizeRole } from '../utils/roleUtils';
+import { normalizeRole, isStaff } from '../utils/roleUtils';
 
 const Tickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -121,6 +121,7 @@ const Tickets = () => {
         <>
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-slate-900">Ticket Management</h1>
+            {!isStaff(userRole) && (
             <button
               onClick={() => setIsFormModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
@@ -128,6 +129,7 @@ const Tickets = () => {
               <Plus size={20} />
               Create Ticket
             </button>
+          )}
           </div>
           <TicketTable
             tickets={tickets}

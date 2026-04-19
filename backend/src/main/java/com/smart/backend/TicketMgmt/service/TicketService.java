@@ -1,6 +1,7 @@
 package com.smart.backend.TicketMgmt.service;
 
 import com.smart.backend.TicketMgmt.dto.*;
+import com.smart.backend.TicketMgmt.enums.TicketStatus;
 import com.smart.backend.TicketMgmt.model.Attachment;
 import com.smart.backend.TicketMgmt.model.Comment;
 import com.smart.backend.TicketMgmt.model.Ticket;
@@ -91,23 +92,26 @@ public class TicketService {
     Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
     Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
 
-    // Role check
     if (!hasRole(tech, "TECHNICIAN") && !hasRole(tech, "ADMIN")) {
         throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
     }
 
-    // technician can only update assigned ticket
     if (hasRole(tech, "TECHNICIAN")) {
-    if (ticket.getAssignedTo() == null ||
-        !Objects.equals((long) ticket.getAssignedTo().getUserId(), techId)) {
-        throw new IllegalStateException("You can only update tickets assigned to you");
+        if (ticket.getAssignedTo() == null ||
+            ticket.getAssignedTo().getUserId() != techId.intValue()) {
+            throw new IllegalStateException("You can only update tickets assigned to you");
+        }
     }
-}
 
     ticket.setStatus(dto.getStatus());
 
+    // Only allow resolution notes when actually resolving/closing
     if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
-        ticket.setResolutionNotes(dto.getResolutionNotes());
+        if (dto.getStatus() == TicketStatus.RESOLVED || dto.getStatus() == TicketStatus.CLOSED) {
+            ticket.setResolutionNotes(dto.getResolutionNotes());
+        } else {
+            throw new IllegalArgumentException("Resolution notes can only be added when status is RESOLVED or CLOSED");
+        }
     }
 
     return mapToResponse(ticketRepo.save(ticket));

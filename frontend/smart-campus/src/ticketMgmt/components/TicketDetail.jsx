@@ -139,12 +139,12 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 disabled={!isStaff(userRole)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                <option value="OPEN">Open</option>
+                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              >
+                {isAdmin(userRole) && <option value="OPEN">Open</option>}
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="RESOLVED">Resolved</option>
                 <option value="CLOSED">Closed</option>
-                {/* Only admins can reject — use the Reject button instead */}
                 {isAdmin(userRole) && <option value="REJECTED">Rejected</option>}
               </select>
               {isStaff(userRole) && (
@@ -182,18 +182,18 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
         </div>
 
         {/* Resolution Notes */}
-        {isStaff(userRole) && (
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Resolution Notes</label>
-            <textarea
-              value={resolutionNotes}
-              onChange={(e) => setResolutionNotes(e.target.value)}
-              rows={3}
-              placeholder="Add resolution notes..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-        )}
+        {isStaff(userRole) && (status === 'RESOLVED' || status === 'CLOSED') && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-700 mb-2">Resolution Notes</label>
+          <textarea
+            value={resolutionNotes}
+            onChange={(e) => setResolutionNotes(e.target.value)}
+            rows={3}
+            placeholder="Describe what was done to resolve this issue..."
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+      )}
 
         {ticket.resolutionNotes && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
