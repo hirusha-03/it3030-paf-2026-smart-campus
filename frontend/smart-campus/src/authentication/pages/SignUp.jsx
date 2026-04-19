@@ -1,8 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 export function SignUp() {
+
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const error  = params.get("error");
+
+  if (error === "EMAIL_EXISTS") {
+    setError("This Google account is already registered. Please sign in instead.");
+  }
+  if (error === "NO_ACCOUNT") {
+    setError("No account found for this Google account. Please sign up first.");
+  }
+}, []);
+
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
