@@ -67,14 +67,19 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   };
 
   const handleUpdateStatus = async () => {
-    try {
-      await updateTicketStatus(ticketId, status, resolutionNotes || null);
-      fetchTicket();
-    } catch (error) {
-      console.error('Failed to update status:', error);
-      alert('Failed to update status: ' + (error.message || 'Network error'));
-    }
-  };
+  // Guard — don't send if status hasn't changed
+  if (status === ticket.status) {
+    alert('Please select a different status to update.');
+    return;
+  }
+  try {
+    await updateTicketStatus(ticketId, status, resolutionNotes || null);
+    fetchTicket();
+  } catch (error) {
+    console.error('Failed to update status:', error);
+    alert('Failed to update status: ' + (error.response?.data?.message || error.message || 'Network error'));
+  }
+};
 
   const handleRejectTicket = async (reason) => {
     try {
@@ -189,7 +194,8 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                   </select>
                   <button
                     onClick={handleUpdateStatus}
-                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
+                    disabled={status === ticket.status}
+                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Update status"
                   >
                     <RefreshCw size={18} />

@@ -122,6 +122,10 @@ public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long t
     TicketStatus current = ticket.getStatus();
     TicketStatus next = dto.getStatus();
 
+    if (current == next) {
+    return mapToResponse(ticket);
+    }
+
     boolean validTransition =
         (current == TicketStatus.IN_PROGRESS && next == TicketStatus.RESOLVED) ||
         (current == TicketStatus.RESOLVED    && next == TicketStatus.CLOSED);
