@@ -64,6 +64,13 @@ function ReviewModal({ booking, isOpen, onClose, onApprove, onReject }) {
     : (typeof booking.resourceName === "string" && booking.resourceName.trim())
       ? booking.resourceName
     : "--";
+  const userDisplayName =
+    booking.userName ||
+    booking.username ||
+    booking.fullName ||
+    booking.name ||
+    booking.email ||
+    "--";
 
   const handleApprove = async () => {
     setSubmitting(true);
@@ -101,9 +108,9 @@ function ReviewModal({ booking, isOpen, onClose, onApprove, onReject }) {
 
         <dl className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">User</dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">User Name</dt>
             <dd className="mt-1 text-sm text-slate-800">
-              {booking.userName || "--"}
+              {userDisplayName}
             </dd>
           </div>
           <div>

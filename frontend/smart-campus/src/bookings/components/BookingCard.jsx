@@ -44,8 +44,10 @@ function formatDate(dateValue) {
 function BookingCard({ booking, onCancel, isCancelling }) {
   const canCancel = booking?.status === 'APPROVED';
   const showQRCode = booking?.status === 'APPROVED';
-  const resourceLabel = Array.isArray(booking?.resourceIds) && booking.resourceIds.length > 0
-    ? booking.resourceIds.join(', ')
+  const resourceLabel = Array.isArray(booking?.resourceNames) && booking.resourceNames.length > 0
+    ? booking.resourceNames.join(', ')
+    : (typeof booking?.resourceName === 'string' && booking.resourceName.trim())
+      ? booking.resourceName
     : '--';
 
   return (
@@ -54,10 +56,9 @@ function BookingCard({ booking, onCancel, isCancelling }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                Booking #{booking.bookingId}
+              <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                {resourceLabel}
               </h3>
-              <p className="mt-1 text-sm text-slate-500">Resource ID: {resourceLabel}</p>
             </div>
             <StatusBadge status={booking.status} />
           </div>

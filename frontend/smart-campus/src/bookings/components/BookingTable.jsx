@@ -70,7 +70,6 @@ function BookingTable({ bookings, onReviewClick }) {
         <table className="min-w-full divide-y divide-slate-200 text-left">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">User</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Resource</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Date</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Time</th>
@@ -82,7 +81,7 @@ function BookingTable({ bookings, onReviewClick }) {
           <tbody className="divide-y divide-slate-100 bg-white">
             {bookings.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
                   No bookings found for this filter.
                 </td>
               </tr>
@@ -100,9 +99,6 @@ function BookingTable({ bookings, onReviewClick }) {
 
                 return (
                   <tr key={booking.bookingId} className="hover:bg-slate-50/60">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
-                      {booking.userName || "--"}
-                    </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{resourceLabel}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
                       {formatDate(booking.date)}

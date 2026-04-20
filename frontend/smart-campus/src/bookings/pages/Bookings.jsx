@@ -1,11 +1,44 @@
 import { useEffect, useMemo, useState } from 'react';
-import { cancelBooking, getMyBookings } from '../api/bookingApi';
+import { cancelBooking, getAvailableResources, getMyBookings } from '../api/bookingApi';
 import BookingCard from '../components/BookingCard';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
+function buildResourceNameMap(resources) {
+  const map = {};
+
+  if (!Array.isArray(resources)) {
+    return map;
+  }
+
+  resources.forEach((resource) => {
+    const resourceId = Number(resource?.id);
+    if (!Number.isInteger(resourceId)) {
+      return;
+    }
+
+    map[resourceId] = resource?.name || `Resource #${resourceId}`;
+  });
+
+  return map;
+}
+
+function withResourceNames(booking, resourceNameMap) {
+  const resourceNames = Array.isArray(booking?.resourceIds)
+    ? booking.resourceIds
+      .map((resourceId) => resourceNameMap[Number(resourceId)])
+      .filter(Boolean)
+    : [];
+
+  return {
+    ...booking,
+    resourceNames,
+  };
+}
+
 function Bookings() {
   const [bookings, setBookings] = useState([]);
+  const [resourceNameMap, setResourceNameMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [cancelInProgressId, setCancelInProgressId] = useState(null);
@@ -18,9 +51,16 @@ function Bookings() {
       setErrorMessage('');
 
       try {
-        const data = await getMyBookings();
+        const [bookingData, resourceData] = await Promise.all([
+          getMyBookings(),
+          getAvailableResources().catch(() => []),
+        ]);
+        const namesById = buildResourceNameMap(resourceData);
+
         if (isMounted) {
-          setBookings(Array.isArray(data) ? data : []);
+          const normalizedBookings = Array.isArray(bookingData) ? bookingData : [];
+          setResourceNameMap(namesById);
+          setBookings(normalizedBookings.map((booking) => withResourceNames(booking, namesById)));
         }
       } catch (error) {
         if (isMounted) {
@@ -61,7 +101,9 @@ function Bookings() {
     try {
       const updatedBooking = await cancelBooking(bookingId);
       setBookings((prev) => prev.map((booking) => (
-        booking.bookingId === updatedBooking.bookingId ? updatedBooking : booking
+        booking.bookingId === updatedBooking.bookingId
+          ? withResourceNames(updatedBooking, resourceNameMap)
+          : booking
       )));
     } catch (error) {
       const backendMessage =
