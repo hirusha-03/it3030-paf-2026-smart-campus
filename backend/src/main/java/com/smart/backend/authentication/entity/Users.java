@@ -28,8 +28,11 @@ public class Users {
     @Column(name = "contact_number")
     private String contactNumber;
 
-    @Column(name = "email", length = 255, unique = true)  // ✅ Add this
+    @Column(name = "email", length = 255, unique = true)
     private String email;
+
+    @Column(name = "provider", length = 255)
+    private String provider;
 
     @Column(name = "username", length = 100, nullable = false)
     private String userName;
