@@ -104,6 +104,9 @@ function BookingCard({ booking, onCancel, isCancelling }) {
         </div>
         {showQRCode && (
           <div className="self-center lg:self-start">
+            <h4 className="mb-2 text-center text-sm font-semibold text-slate-700 lg:text-left">
+              Check-in Pass
+            </h4>
             <BookingQRCode booking={booking} />
           </div>
         )}
