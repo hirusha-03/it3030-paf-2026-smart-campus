@@ -59,8 +59,10 @@ function ReviewModal({ booking, isOpen, onClose, onApprove, onReject }) {
     return null;
   }
 
-  const resourceLabel = Array.isArray(booking.resourceIds) && booking.resourceIds.length > 0
-    ? booking.resourceIds.join(", ")
+  const resourceLabel = Array.isArray(booking.resourceNames) && booking.resourceNames.length > 0
+    ? booking.resourceNames.join(", ")
+    : (typeof booking.resourceName === "string" && booking.resourceName.trim())
+      ? booking.resourceName
     : "--";
 
   const handleApprove = async () => {
@@ -101,7 +103,7 @@ function ReviewModal({ booking, isOpen, onClose, onApprove, onReject }) {
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">User</dt>
             <dd className="mt-1 text-sm text-slate-800">
-              {booking.userName || `User #${booking.userId ?? "--"}`}
+              {booking.userName || "--"}
             </dd>
           </div>
           <div>

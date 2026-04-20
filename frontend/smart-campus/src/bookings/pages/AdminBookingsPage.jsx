@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAllBookings, updateBookingStatus } from "../api/bookingApi";
+import { getAllBookings, getAvailableResources, updateBookingStatus } from "../api/bookingApi";
 import BookingTable from "../components/BookingTable";
 import ReviewModal from "../components/ReviewModal";
 
@@ -13,8 +13,41 @@ function normalizeStatus(status) {
   return status.toUpperCase();
 }
 
+function buildResourceNameMap(resources) {
+  const map = {};
+
+  if (!Array.isArray(resources)) {
+    return map;
+  }
+
+  resources.forEach((resource) => {
+    const resourceId = Number(resource?.id);
+    if (!Number.isInteger(resourceId)) {
+      return;
+    }
+
+    map[resourceId] = resource?.name || `Resource #${resourceId}`;
+  });
+
+  return map;
+}
+
+function withResourceNames(booking, resourceNameMap) {
+  const resourceNames = Array.isArray(booking?.resourceIds)
+    ? booking.resourceIds
+      .map((resourceId) => resourceNameMap[Number(resourceId)])
+      .filter(Boolean)
+    : [];
+
+  return {
+    ...booking,
+    resourceNames,
+  };
+}
+
 function AdminBookingsPage() {
   const [bookings, setBookings] = useState([]);
+  const [resourceNameMap, setResourceNameMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -29,9 +62,16 @@ function AdminBookingsPage() {
       setErrorMessage("");
 
       try {
-        const data = await getAllBookings();
+        const [bookingData, resourceData] = await Promise.all([
+          getAllBookings(),
+          getAvailableResources().catch(() => []),
+        ]);
+        const namesById = buildResourceNameMap(resourceData);
+
         if (isMounted) {
-          setBookings(Array.isArray(data) ? data : []);
+          const normalizedBookings = Array.isArray(bookingData) ? bookingData : [];
+          setResourceNameMap(namesById);
+          setBookings(normalizedBookings.map((booking) => withResourceNames(booking, namesById)));
         }
       } catch (error) {
         if (isMounted) {
@@ -85,7 +125,9 @@ function AdminBookingsPage() {
     try {
       const updatedBooking = await updateBookingStatus(booking.bookingId, "APPROVED");
       setBookings((prev) => prev.map((item) => (
-        item.bookingId === updatedBooking.bookingId ? updatedBooking : item
+        item.bookingId === updatedBooking.bookingId
+          ? withResourceNames(updatedBooking, resourceNameMap)
+          : item
       )));
       closeModal();
     } catch (error) {
@@ -106,7 +148,9 @@ function AdminBookingsPage() {
     try {
       const updatedBooking = await updateBookingStatus(booking.bookingId, "REJECTED", rejectionReason);
       setBookings((prev) => prev.map((item) => (
-        item.bookingId === updatedBooking.bookingId ? updatedBooking : item
+        item.bookingId === updatedBooking.bookingId
+          ? withResourceNames(updatedBooking, resourceNameMap)
+          : item
       )));
       closeModal();
     } catch (error) {
