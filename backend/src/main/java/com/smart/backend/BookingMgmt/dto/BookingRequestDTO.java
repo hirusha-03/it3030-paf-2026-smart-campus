@@ -4,6 +4,7 @@ import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.AssertTrue;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -33,4 +34,12 @@ public class BookingRequestDTO {
     private String purpose;
 
     private Integer expectedAttendees;
+
+    @AssertTrue(message = "startTime must be before endTime")
+    public boolean isValidTimeRange() {
+        if (startTime == null || endTime == null) {
+            return true;
+        }
+        return startTime.isBefore(endTime);
+    }
 }

@@ -41,7 +41,7 @@ function formatDate(dateValue) {
 }
 
 function BookingCard({ booking, onCancel, isCancelling }) {
-  const canCancel = booking?.status === 'PENDING' || booking?.status === 'APPROVED';
+  const canCancel = booking?.status === 'APPROVED';
   const resourceLabel = Array.isArray(booking?.resourceIds) && booking.resourceIds.length > 0
     ? booking.resourceIds.join(', ')
     : '--';

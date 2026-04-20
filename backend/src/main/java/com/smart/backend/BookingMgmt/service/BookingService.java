@@ -7,9 +7,11 @@ import com.smart.backend.BookingMgmt.model.Booking.BookingStatus;
 import com.smart.backend.BookingMgmt.repo.BookingRepository;
 import com.smart.backend.ResourceMgmt.model.Resource;
 import com.smart.backend.ResourceMgmt.repo.ResourceRepository;
+import com.smart.backend.authentication.entity.Role;
 import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.UserRepo;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +31,7 @@ public class BookingService {
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request, String authenticatedUsername) {
         // Resolve the booking owner from JWT-authenticated principal.
-        Users user = userRepo.findByUserName(authenticatedUsername)
-                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+        Users user = resolveAuthenticatedUser(authenticatedUsername);
 
         // Get the resource entities
         List<Resource> resources = resourceRepository.findAllById(request.getResourceIds());
@@ -71,7 +72,15 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getBookingsByUser(Long userId) {
+    public List<BookingResponseDTO> getBookingsByUser(Long userId, String authenticatedUsername) {
+        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+        boolean isAdmin = hasRole(actor, "Admin");
+        boolean isSelf = userId.equals((long) actor.getUserId());
+
+        if (!isAdmin && !isSelf) {
+            throw new SecurityException("You are not allowed to view bookings for another user.");
+        }
+
         return bookingRepository.findAll().stream()
                 .filter(booking -> userId.equals((long) booking.getUser().getUserId()))
                 .map(this::toResponseDTO)
@@ -80,42 +89,94 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getBookingsForAuthenticatedUser(String authenticatedUsername) {
-        Users user = userRepo.findByUserName(authenticatedUsername)
-                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+        Users user = resolveAuthenticatedUser(authenticatedUsername);
 
-        return getBookingsByUser((long) user.getUserId());
+        return getBookingsByUser((long) user.getUserId(), authenticatedUsername);
     }
 
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getAllBookings() {
+    public List<BookingResponseDTO> getAllBookings(String authenticatedUsername) {
         return bookingRepository.findAll().stream()
                 .map(this::toResponseDTO)
                 .toList();
     }
 
     @Transactional
-    public BookingResponseDTO updateBookingStatus(Long bookingId, BookingStatus newStatus, String rejectionReason) {
+    public BookingResponseDTO updateBookingStatus(
+            Long bookingId,
+            BookingStatus newStatus,
+            String rejectionReason,
+            String authenticatedUsername
+    ) {
+        if (newStatus != BookingStatus.APPROVED && newStatus != BookingStatus.REJECTED) {
+            throw new IllegalArgumentException("Only APPROVED or REJECTED can be set through review workflow.");
+        }
+
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found with id: " + bookingId));
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException("Only PENDING bookings can be reviewed.");
+        }
 
         if (newStatus == BookingStatus.REJECTED && (rejectionReason == null || rejectionReason.isBlank())) {
             throw new IllegalArgumentException("Rejection reason is required when status is REJECTED.");
         }
 
         booking.setStatus(newStatus);
-        booking.setRejectionReason(newStatus == BookingStatus.REJECTED ? rejectionReason : null);
+        booking.setRejectionReason(newStatus == BookingStatus.REJECTED ? rejectionReason.trim() : null);
 
         Booking updated = bookingRepository.save(booking);
         return toResponseDTO(updated);
     }
 
     @Transactional
-    public void deleteBooking(Long bookingId) {
-        if (!bookingRepository.existsById(bookingId)) {
-            throw new IllegalArgumentException("Booking not found with id: " + bookingId);
+    public BookingResponseDTO cancelBooking(Long bookingId, String authenticatedUsername) {
+        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found with id: " + bookingId));
+
+        boolean isAdmin = hasRole(actor, "Admin");
+        boolean isOwner = booking.getUser() != null && booking.getUser().getUserId() == actor.getUserId();
+
+        if (!isAdmin && !isOwner) {
+            throw new SecurityException("You are not allowed to cancel this booking.");
         }
 
-        bookingRepository.deleteById(bookingId);
+        if (booking.getStatus() != BookingStatus.APPROVED) {
+            throw new IllegalStateException("Only APPROVED bookings can be cancelled.");
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setRejectionReason(null);
+
+        Booking updated = bookingRepository.save(booking);
+        return toResponseDTO(updated);
+    }
+
+    @Transactional
+    public void deleteBooking(Long bookingId, String authenticatedUsername) {
+        // Keep backward compatibility for clients still using DELETE as cancel.
+        cancelBooking(bookingId, authenticatedUsername);
+    }
+
+    private Users resolveAuthenticatedUser(String authenticatedUsername) {
+        return userRepo.findByUserName(authenticatedUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+    }
+
+    private void ensureAdmin(Users user) {
+        if (!hasRole(user, "Admin")) {
+            throw new SecurityException("Only ADMIN users are allowed for this action.");
+        }
+    }
+
+    private boolean hasRole(Users user, String roleName) {
+        return user.getRole() != null && user.getRole().stream()
+                .filter(Objects::nonNull)
+                .map(Role::getRoleName)
+                .anyMatch(name -> roleName.equalsIgnoreCase(name));
     }
 
     private BookingResponseDTO toResponseDTO(Booking booking) {

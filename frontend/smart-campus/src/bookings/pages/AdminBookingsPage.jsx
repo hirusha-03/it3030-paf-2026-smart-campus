@@ -3,7 +3,7 @@ import { getAllBookings, updateBookingStatus } from "../api/bookingApi";
 import BookingTable from "../components/BookingTable";
 import ReviewModal from "../components/ReviewModal";
 
-const FILTER_OPTIONS = ["All", "Pending", "Approved", "Rejected"];
+const FILTER_OPTIONS = ["All", "Pending", "Approved", "Rejected", "Cancelled"];
 
 function normalizeStatus(status) {
   if (typeof status !== "string") {
