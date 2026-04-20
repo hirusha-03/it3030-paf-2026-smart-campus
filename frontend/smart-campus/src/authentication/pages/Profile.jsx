@@ -93,7 +93,7 @@ export default function Profile() {
     const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
     return roles[0]?.replace('ROLE_', '') || 'User';
   };
-  const isGoogleUser = () => !user?.userPassword || user?.userPassword === '';
+  const isGoogleUser = () => user?.provider === "Google";
 
   if (loading) {
     return (

@@ -39,6 +39,7 @@ public class UserServiceIMPL implements UserService {
             user.setUserFirstName(signupRequest.getUserFirstName());
             user.setUserLastName(signupRequest.getUserLastName());
             user.setContactNumber(signupRequest.getContactNumber());
+            user.setProvider("Standard");
 
             Set<Role> userRoles = new HashSet<>();
 
@@ -80,6 +81,7 @@ public class UserServiceIMPL implements UserService {
             user.setUserFirstName("Tashen");
             user.setUserLastName("Chamika");
             user.setContactNumber("01236547");
+            user.setProvider("Standard");
 
             Set<Role> adminRoles = new HashSet<>();
             adminRoles.add(adminRole);
@@ -96,6 +98,7 @@ public class UserServiceIMPL implements UserService {
             user.setUserFirstName("Kamal");
             user.setUserLastName("Perera");
             user.setContactNumber("02365478");
+            user.setProvider("Standard");
 
             Set<Role> userRoles = new HashSet<>();
             userRoles.add(userRole);
@@ -124,6 +127,7 @@ public class UserServiceIMPL implements UserService {
                 user.getUserLastName(),
                 user.getEmail(),
                 user.getContactNumber(),
+                user.getProvider(),
                 roles
         );
 

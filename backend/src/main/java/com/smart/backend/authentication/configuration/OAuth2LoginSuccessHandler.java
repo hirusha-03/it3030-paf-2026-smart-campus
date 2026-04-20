@@ -109,6 +109,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 "&userLastName="  + encode(safe(user.getUserLastName())) +
                 "&email="         + encode(safe(user.getEmail())) +
                 "&contactNumber=" + encode(safe(user.getContactNumber())) +
+                "&provider="      + encode(safe(user.getProvider())) +
                 "&role="          + encode(roleName);
     }
 
@@ -119,6 +120,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         newUser.setUserName(email);
         newUser.setUserFirstName(firstName);
         newUser.setUserLastName(lastName);
+        newUser.setProvider("Google");
         newUser.setUserPassword("");
 
         Role userRole = roleRepo.findByRoleName("User");
