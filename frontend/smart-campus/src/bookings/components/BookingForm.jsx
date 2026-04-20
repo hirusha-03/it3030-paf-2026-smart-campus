@@ -55,7 +55,8 @@ function BookingForm({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const token = localStorage.getItem("JwtToken");
+    // Support different token storage keys used in the app
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('JwtToken');
     const decoded = decodeJwtPayload(token);
     const loggedInUserId = Number(decoded?.id ?? decoded?.userId ?? decoded?.sub);
 

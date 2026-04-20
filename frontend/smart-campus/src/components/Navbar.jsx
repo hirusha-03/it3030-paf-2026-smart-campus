@@ -14,9 +14,9 @@ const Navbar = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Check if user is logged in
+  // Check if user is logged in (support multiple token keys)
   const isLoggedIn = () => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('JwtToken');
     const user = localStorage.getItem('user');
     return !!(token || user);
   };
@@ -77,7 +77,10 @@ const Navbar = () => {
             onClick={() => {
               if (isLoggedIn()) {
                 if (window.confirm('Do you want to logout?')) {
+                  // remove all possible token keys and user
                   localStorage.removeItem('authToken');
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('JwtToken');
                   localStorage.removeItem('user');
                   navigate('/');
                 }
@@ -110,7 +113,7 @@ const Navbar = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes slideIn {
           from {
             transform: translateX(100%);

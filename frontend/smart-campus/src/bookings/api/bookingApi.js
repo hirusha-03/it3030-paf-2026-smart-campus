@@ -8,7 +8,8 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('JwtToken');
+    // Support tokens stored under multiple keys for backward compatibility
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('JwtToken');
 
     if (token) {
       config.headers = config.headers || {};
