@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAllBookings, updateBookingStatus } from "../api/bookingApi";
+import { getAllBookings, getAvailableResources, updateBookingStatus } from "../api/bookingApi";
 import BookingTable from "../components/BookingTable";
 import ReviewModal from "../components/ReviewModal";
 
@@ -13,6 +13,22 @@ function normalizeStatus(status) {
   return status.toUpperCase();
 }
 
+function buildResourceNameById(resources) {
+  if (!Array.isArray(resources)) {
+    return {};
+  }
+
+  return resources.reduce((accumulator, resource) => {
+    const id = Number(resource?.id);
+    if (!Number.isInteger(id)) {
+      return accumulator;
+    }
+
+    accumulator[id] = resource?.name || `Resource #${id}`;
+    return accumulator;
+  }, {});
+}
+
 function AdminBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +36,7 @@ function AdminBookingsPage() {
   const [updating, setUpdating] = useState(false);
   const [filterStatus, setFilterStatus] = useState("All");
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [resourceNameById, setResourceNameById] = useState({});
 
   useEffect(() => {
     let isMounted = true;
@@ -29,9 +46,19 @@ function AdminBookingsPage() {
       setErrorMessage("");
 
       try {
-        const data = await getAllBookings();
+        const bookingsData = await getAllBookings();
+
+        let resourcesData = [];
+        try {
+          resourcesData = await getAvailableResources();
+        } catch {
+          // Resource name lookup is optional for admin listing.
+          resourcesData = [];
+        }
+
         if (isMounted) {
-          setBookings(Array.isArray(data) ? data : []);
+          setBookings(Array.isArray(bookingsData) ? bookingsData : []);
+          setResourceNameById(buildResourceNameById(resourcesData));
         }
       } catch (error) {
         if (isMounted) {
@@ -56,7 +83,20 @@ function AdminBookingsPage() {
   }, []);
 
   const filteredBookings = useMemo(() => {
-    const sorted = [...bookings].sort((a, b) => {
+    const withResourceNames = bookings.map((booking) => {
+      const resourceNames = Array.isArray(booking.resourceIds)
+        ? booking.resourceIds
+          .map((resourceId) => resourceNameById[Number(resourceId)])
+          .filter(Boolean)
+        : [];
+
+      return {
+        ...booking,
+        resourceNames,
+      };
+    });
+
+    const sorted = [...withResourceNames].sort((a, b) => {
       const dateA = new Date(`${a.date}T${a.startTime || "00:00:00"}`).getTime();
       const dateB = new Date(`${b.date}T${b.startTime || "00:00:00"}`).getTime();
       return dateB - dateA;
@@ -68,7 +108,7 @@ function AdminBookingsPage() {
 
     const normalizedFilter = filterStatus.toUpperCase();
     return sorted.filter((booking) => normalizeStatus(booking.status) === normalizedFilter);
-  }, [bookings, filterStatus]);
+  }, [bookings, filterStatus, resourceNameById]);
 
   const handleReviewClick = (booking) => {
     setSelectedBooking(booking);
