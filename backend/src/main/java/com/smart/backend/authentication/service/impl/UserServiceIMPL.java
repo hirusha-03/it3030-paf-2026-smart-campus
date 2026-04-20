@@ -1,5 +1,6 @@
 package com.smart.backend.authentication.service.impl;
 
+import com.smart.backend.TicketMgmt.dto.UserSummaryDto;
 import com.smart.backend.authentication.dto.SignupRequest;
 import com.smart.backend.authentication.dto.UserProfileResponse;
 import com.smart.backend.authentication.entity.Role;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -72,6 +74,14 @@ public class UserServiceIMPL implements UserService {
             roleRepo.save(userRole);
         }
 
+        Role technicianRole = new Role();
+        if (!roleRepo.existsByRoleName("Technician")) {
+            technicianRole.setRoleName("Technician");
+            technicianRole.setRoleDescription("Technician role");
+            roleRepo.save(technicianRole);
+        }
+
+
         if (!userRepo.existsByUserName("admin123")) {
             Users user = new Users();
             user.setUserName("admin123");
@@ -103,6 +113,22 @@ public class UserServiceIMPL implements UserService {
             user.setRole(userRoles);
             userRepo.save(user);
         }
+
+        if (!userRepo.existsByUserName("tech123")) {
+            Users user = new Users();
+            user.setUserName("tech123");
+            user.setEmail("tech@gmail.com");
+            user.setUserPassword(getEncodedPassword("tech@123"));
+            user.setUserFirstName("Nimal");
+            user.setUserLastName("Silva");
+            user.setContactNumber("0712345678");
+
+            Set<Role> techRoles = new HashSet<>();
+            techRoles.add(technicianRole);
+
+            user.setRole(techRoles);
+            userRepo.save(user);
+        }
     }
 
     @Override
@@ -132,5 +158,20 @@ public class UserServiceIMPL implements UserService {
     public String getEncodedPassword(String password){
         return passwordEncoder.encode(password);
     }
+
+    @Override
+    public List<UserSummaryDto> getUsersByRole(String roleName) {
+    return userRepo.findByRoleName(roleName).stream()
+        .map(u -> {
+            UserSummaryDto dto = new UserSummaryDto();
+            dto.setId((long) u.getUserId());
+            dto.setName(u.getUserFirstName() != null && !u.getUserFirstName().isBlank()
+                ? u.getUserFirstName() + " " + u.getUserLastName()
+                : u.getUserName());
+            dto.setRole(roleName);
+            return dto;
+        })
+        .collect(Collectors.toList());
+}
 
 }

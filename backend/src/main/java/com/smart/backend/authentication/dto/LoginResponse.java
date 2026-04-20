@@ -1,15 +1,21 @@
 package com.smart.backend.authentication.dto;
 
-import com.smart.backend.authentication.entity.Users;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Set;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 public class LoginResponse {
 
-    private Users user;
-    private String JwtToken;
+    private String jwtToken;
+    private String userName;
+    private String userFirstName;
+    private String userLastName;
+    private String email;
+    private String contactNumber;
+    private Set<String> roles;
 }

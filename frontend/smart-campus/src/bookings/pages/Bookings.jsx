@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { deleteBooking, getMyBookings } from '../api/bookingApi';
+import { cancelBooking, getMyBookings } from '../api/bookingApi';
 import BookingCard from '../components/BookingCard';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -59,8 +59,10 @@ function Bookings() {
     setCancelInProgressId(bookingId);
 
     try {
-      await deleteBooking(bookingId);
-      setBookings((prev) => prev.filter((booking) => booking.bookingId !== bookingId));
+      const updatedBooking = await cancelBooking(bookingId);
+      setBookings((prev) => prev.map((booking) => (
+        booking.bookingId === updatedBooking.bookingId ? updatedBooking : booking
+      )));
     } catch (error) {
       const backendMessage =
         error?.response?.data?.message ||

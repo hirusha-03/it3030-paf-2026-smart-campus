@@ -56,6 +56,10 @@ function getStatusClasses(status) {
     return "border-rose-200 bg-rose-50 text-rose-700";
   }
 
+  if (normalizedStatus === "CANCELLED") {
+    return "border-slate-300 bg-slate-100 text-slate-700";
+  }
+
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
@@ -88,6 +92,7 @@ function BookingTable({ bookings, onReviewClick }) {
                 const normalizedStatus = typeof booking.status === "string"
                   ? booking.status.toUpperCase()
                   : "PENDING";
+                const canReview = normalizedStatus === "PENDING";
                 const resourceLabel = Array.isArray(booking.resourceIds) && booking.resourceIds.length > 0
                   ? booking.resourceIds.join(", ")
                   : "--";
@@ -116,13 +121,17 @@ function BookingTable({ bookings, onReviewClick }) {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => onReviewClick(booking)}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                      >
-                        Review
-                      </button>
+                      {canReview ? (
+                        <button
+                          type="button"
+                          onClick={() => onReviewClick(booking)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        >
+                          Review
+                        </button>
+                      ) : (
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Closed</span>
+                      )}
                     </td>
                   </tr>
                 );

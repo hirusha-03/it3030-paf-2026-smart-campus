@@ -4,7 +4,8 @@ import TicketTable from '../components/TicketTable';
 import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
-import { getTicketsForUser, createTicket, assignTicket } from '../api/ticketService';
+import { getTickets, createTicket, assignTicket, getCurrentUser } from '../api/ticketService';
+import { normalizeRole, isStaff } from '../utils/roleUtils';
 
 const Tickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -12,30 +13,74 @@ const Tickets = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
-
-  // Mock user data - replace with actual auth
-  const userId = 1; // Example user ID
-  const userRole = 'ADMIN'; // 'STUDENT', 'TECHNICIAN', 'ADMIN'
+  const [userId, setUserId] = useState(null);
+  const [userRole, setUserRole] = useState('');
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
-    fetchTickets();
+    loadCurrentUser();
   }, []);
 
   const fetchTickets = async () => {
     try {
-      const data = await getTicketsForUser(userId);
+      const data = await getTickets();
       setTickets(data);
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
+      alert('Failed to fetch tickets: ' + (error.message || 'Network error'));
     }
   };
 
+  const loadCurrentUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUserId(currentUser.userId);
+      const rawRole = Array.isArray(currentUser.roles)
+        ? currentUser.roles[0] || ''
+        : typeof currentUser.roles === 'string'
+          ? currentUser.roles
+          : '';
+      setUserRole(normalizeRole(rawRole));
+      setIsUserLoading(false);
+      fetchTickets();
+    } catch (error) {
+      console.error('Failed to load current user:', error);
+      alert('Failed to load auth user: ' + (error.message || 'Please login again.'));
+      setIsUserLoading(false);
+    }
+  };
+
+  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  if (isUserLoading) {
+    return <div>Loading user...</div>;
+  }
+
+  
   const handleCreateTicket = async (ticketData) => {
     try {
-      await createTicket(ticketData, userId);
+      const attachmentFilePaths = ticketData.attachments
+        ? await Promise.all(ticketData.attachments.map(readFileAsDataUrl))
+        : [];
+
+      const payload = {
+        ...ticketData,
+        attachmentFilePaths,
+      };
+      delete payload.attachments;
+
+      await createTicket(payload);
+      alert('Ticket created successfully!');
+      setIsFormModalOpen(false);
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to create ticket:', error);
+      alert('Failed to create ticket: ' + error.message);
     }
   };
 
@@ -56,10 +101,12 @@ const Tickets = () => {
 
   const handleAssignSubmit = async (ticketId, assignedToId) => {
     try {
-      await assignTicket(ticketId, assignedToId, userId);
+      await assignTicket(ticketId, assignedToId);
+      alert('Ticket assigned successfully!');
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to assign ticket:', error);
+      alert('Failed to assign ticket: ' + error.message);
     }
   };
 
@@ -74,6 +121,7 @@ const Tickets = () => {
         <>
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-slate-900">Ticket Management</h1>
+            {!isStaff(userRole) && (
             <button
               onClick={() => setIsFormModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
@@ -81,6 +129,7 @@ const Tickets = () => {
               <Plus size={20} />
               Create Ticket
             </button>
+          )}
           </div>
           <TicketTable
             tickets={tickets}
@@ -103,6 +152,7 @@ const Tickets = () => {
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
         onSubmit={handleCreateTicket}
+        userId={userId}
       />
 
       <AssignModal
