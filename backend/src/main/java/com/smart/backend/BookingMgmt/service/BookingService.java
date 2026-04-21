@@ -239,6 +239,7 @@ public class BookingService {
                 resolveUserDisplayName(booking.getUser()),
                 booking.getResources().stream().map(Resource::getId).toList(),
                 booking.getResources().stream().map(Resource::getName).toList(),
+            booking.getResources().stream().map(Resource::getLocation).toList(),
                 booking.getDate(),
                 booking.getStartTime(),
                 booking.getEndTime(),
