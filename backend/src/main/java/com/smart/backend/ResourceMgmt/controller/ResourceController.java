@@ -18,7 +18,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/resources")
-@CrossOrigin
 @RequiredArgsConstructor
 public class ResourceController {
 
@@ -37,7 +36,7 @@ public class ResourceController {
         return ResponseEntity.ok(resource);
     }
 
-    @GetMapping
+    @GetMapping(path = {"", "/"})
     public ResponseEntity<Page<ResourceResponseDTO>> getAllResources(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

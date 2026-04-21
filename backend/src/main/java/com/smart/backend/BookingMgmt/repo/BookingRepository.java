@@ -11,6 +11,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
+    // Find bookings that reference a given resource id
+    java.util.List<Booking> findByResources_Id(Long resourceId);
+
+
     @Query("""
             SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
             FROM Booking b

@@ -7,6 +7,8 @@ import com.smart.backend.ResourceMgmt.enums.ResourceType;
 import com.smart.backend.ResourceMgmt.exception.ResourceNotFoundException;
 import com.smart.backend.ResourceMgmt.model.Resource;
 import com.smart.backend.ResourceMgmt.repo.ResourceRepository;
+import com.smart.backend.BookingMgmt.repo.BookingRepository;
+import com.smart.backend.BookingMgmt.model.Booking;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class ResourceService {
 
     private final ResourceRepository resourceRepository;
+    private final BookingRepository bookingRepository;
 
     public ResourceResponseDTO createResource(ResourceRequestDTO requestDTO) {
         Resource resource = new Resource();
@@ -48,13 +51,42 @@ public class ResourceService {
     }
 
     public List<ResourceResponseDTO> searchResources(ResourceType type, String location, Integer minCapacity, ResourceStatus status) {
-        return resourceRepository.searchResources(type, location, minCapacity, status).stream()
+        List<Resource> resources;
+        
+        // Use different search based on parameters
+        if (type != null && location != null && !location.isEmpty()) {
+            resources = resourceRepository.findByTypeAndLocationContainingIgnoreCase(type, location);
+        } else if (type != null && minCapacity != null) {
+            resources = resourceRepository.findByTypeAndCapacityGreaterThanEqual(type, minCapacity);
+        } else if (type != null && status != null) {
+            resources = resourceRepository.findByTypeAndStatus(type, status);
+        } else if (type != null) {
+            resources = resourceRepository.findByType(type);
+        } else if (location != null && !location.isEmpty()) {
+            resources = resourceRepository.findByLocationContainingIgnoreCase(location);
+        } else if (minCapacity != null) {
+            resources = resourceRepository.findByCapacityGreaterThanEqual(minCapacity);
+        } else if (status != null) {
+            resources = resourceRepository.findByStatus(status);
+        } else {
+            resources = resourceRepository.findAll();
+        }
+        
+        return resources.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     public void deleteResource(Long id) {
         Resource resource = findById(id);
+        // Remove association from bookings to avoid FK constraint violations
+        java.util.List<Booking> bookings = bookingRepository.findByResources_Id(id);
+        if (bookings != null && !bookings.isEmpty()) {
+            for (Booking b : bookings) {
+                b.getResources().removeIf(r -> r.getId().equals(id));
+                bookingRepository.save(b);
+            }
+        }
         resourceRepository.delete(resource);
     }
 
@@ -107,7 +139,7 @@ public class ResourceService {
                 .name(resource.getName())
                 .description(resource.getDescription())
                 .type(resource.getType())
-                .typeDisplayName(resource.getType() != null ? resource.getType().name() : null)
+                .typeDisplayName(resource.getType() != null ? resource.getType().getDisplayName() : null)
                 .capacity(resource.getCapacity())
                 .location(resource.getLocation())
                 .building(resource.getBuilding())
@@ -117,7 +149,7 @@ public class ResourceService {
                 .status(resource.getStatus())
                 .imageUrl(resource.getImageUrl())
                 .amenities(resource.getAmenities())
-                .createdBy(resource.getCreatedBy() != null ? resource.getCreatedBy().getEmail() : null)
+                .createdBy(resource.getCreatedBy() != null ? resource.getCreatedBy().getName() : null)
                 .createdAt(resource.getCreatedAt())
                 .updatedAt(resource.getUpdatedAt())
                 .build();

@@ -24,51 +24,52 @@ public class Resource {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "name", nullable = false, length = 100, columnDefinition = "VARCHAR(100)")
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "type", nullable = false, columnDefinition = "VARCHAR(50)")
     private ResourceType type;
 
+    @Column(name = "capacity")
     private Integer capacity;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "location", nullable = false, length = 255, columnDefinition = "VARCHAR(255)")
     private String location;
 
-    @Column(length = 100)
+    @Column(name = "building", length = 100, columnDefinition = "VARCHAR(100)")
     private String building;
     
+    @Column(name = "floor")
     private Integer floor;
 
-    @Column(columnDefinition = "TIME")
+    @Column(name = "available_from", columnDefinition = "TIME")
     private LocalTime availableFrom = LocalTime.of(8, 0);
 
-    @Column(columnDefinition = "TIME")
+    @Column(name = "available_to", columnDefinition = "TIME")
     private LocalTime availableTo = LocalTime.of(18, 0);
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(name = "status", length = 20, columnDefinition = "VARCHAR(20)")
     private ResourceStatus status = ResourceStatus.ACTIVE;
 
-
-    @Column(length = 500)
+    @Column(name = "image_url", length = 500, columnDefinition = "VARCHAR(500)")
     private String imageUrl;
     
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "amenities", columnDefinition = "TEXT")
     private String amenities;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private Users createdBy;
 
-    @Column(columnDefinition = "TIMESTAMP")
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
-    @Column(columnDefinition = "TIMESTAMP")
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
     @PrePersist
