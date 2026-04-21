@@ -50,6 +50,9 @@ function BookingCard({ booking, onCancel, isCancelling, onDelete, isDeleting }) 
     : (typeof booking?.resourceName === 'string' && booking.resourceName.trim())
       ? booking.resourceName
     : '--';
+  const locationLabel = Array.isArray(booking?.resourceLocations) && booking.resourceLocations.length > 0
+    ? booking.resourceLocations.join(', ')
+    : '--';
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">
@@ -78,6 +81,10 @@ function BookingCard({ booking, onCancel, isCancelling, onDelete, isDeleting }) 
             <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Expected Attendees</dt>
               <dd className="mt-1 text-sm text-slate-800">{booking.expectedAttendees ?? '--'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</dt>
+              <dd className="mt-1 text-sm text-slate-800">{locationLabel}</dd>
             </div>
             <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Purpose</dt>

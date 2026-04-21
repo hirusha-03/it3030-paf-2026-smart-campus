@@ -46,8 +46,12 @@ function decodeJwtPayload(token) {
 }
 
 function BookingForm({
+  resourceTypes,
+  selectedResourceType,
+  onResourceTypeChange,
   resources,
   selectedResourceId,
+  selectedResource,
   onResourceChange,
   onSubmit,
   isSubmitting,
@@ -62,6 +66,10 @@ function BookingForm({
 
   const validateForm = (data) => {
     const errors = {};
+
+    if (!selectedResourceType) {
+      errors.resourceType = "Please select a resource type.";
+    }
 
     if (!selectedResourceId) {
       errors.resourceIds = "Please select a resource.";
@@ -109,6 +117,12 @@ function BookingForm({
         errors.expectedAttendees = "Expected attendees must contain numbers only.";
       } else if (Number(data.expectedAttendees) < 1) {
         errors.expectedAttendees = "Expected attendees must be at least 1.";
+      } else {
+        const attendeesCount = Number(data.expectedAttendees);
+        const resourceCapacity = Number(selectedResource?.capacity);
+        if (Number.isFinite(resourceCapacity) && attendeesCount > resourceCapacity) {
+          errors.expectedAttendees = `Attendees cannot exceed resource capacity of ${resourceCapacity}.`;
+        }
       }
     }
 
@@ -153,6 +167,7 @@ function BookingForm({
     event.preventDefault();
 
     setTouchedFields({
+      resourceType: true,
       resourceIds: true,
       date: true,
       startTime: true,
@@ -205,6 +220,35 @@ function BookingForm({
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div>
+          <label htmlFor="resourceType" className="mb-1 block text-sm font-semibold text-slate-700">
+            Resource Type
+          </label>
+          <select
+            id="resourceType"
+            name="resourceType"
+            value={selectedResourceType}
+            onChange={(event) => {
+              onResourceTypeChange(event);
+              markFieldTouched("resourceType");
+              setFieldErrors(validateForm(formData));
+            }}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            required
+            aria-invalid={Boolean(fieldErrors.resourceType && touchedFields.resourceType)}
+          >
+            <option value="">Select a resource type</option>
+            {resourceTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+          {fieldErrors.resourceType && touchedFields.resourceType && (
+            <p className="mt-1 text-xs font-medium text-rose-700">{fieldErrors.resourceType}</p>
+          )}
+        </div>
+
+        <div>
           <label htmlFor="resourceIds" className="mb-1 block text-sm font-semibold text-slate-700">
             Resource
           </label>
@@ -221,6 +265,7 @@ function BookingForm({
             required
             aria-invalid={Boolean(fieldErrors.resourceIds && touchedFields.resourceIds)}
           >
+            {resources.length === 0 && <option value="">No resources for selected type</option>}
             {resources.map((resource) => (
               <option key={resource.id} value={resource.id}>
                 {resource.name}

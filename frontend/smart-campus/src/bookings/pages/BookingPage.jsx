@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createBooking, getAvailableResources } from "../api/bookingApi";
 import BookingForm from "../components/BookingForm";
-import ResourceCard from "../components/ResourceCard";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -22,6 +21,7 @@ function mapResourceForUi(resource) {
     id: Number(resource.id),
     name: resource.name || `Resource #${resource.id}`,
     type: resource.typeDisplayName || resource.type || "Resource",
+    location: resource.location || "--",
     capacity: resource.capacity ?? "--",
     features: parseFeatureList(resource.amenities),
     imageUrl: resource.imageUrl || "https://picsum.photos/seed/resource-fallback/600/360",
@@ -31,13 +31,18 @@ function mapResourceForUi(resource) {
 function BookingPage() {
   const navigate = useNavigate();
   const [resources, setResources] = useState([]);
+  const [selectedResourceType, setSelectedResourceType] = useState("");
   const [selectedResourceId, setSelectedResourceId] = useState(null);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const resourceTypes = [...new Set(resources.map((resource) => resource.type).filter(Boolean))];
+  const filteredResources = selectedResourceType
+    ? resources.filter((resource) => resource.type === selectedResourceType)
+    : [];
   const selectedResource =
-    resources.find((resource) => resource.id === selectedResourceId) || null;
+    filteredResources.find((resource) => resource.id === selectedResourceId) || null;
 
   useEffect(() => {
     let isMounted = true;
@@ -51,16 +56,23 @@ function BookingPage() {
           : [];
 
         if (isMounted && mapped.length > 0) {
+          const initialType = mapped[0]?.type || "";
+          const initialResourcesForType = initialType
+            ? mapped.filter((resource) => resource.type === initialType)
+            : [];
           setResources(mapped);
-          setSelectedResourceId(mapped[0].id);
+          setSelectedResourceType(initialType);
+          setSelectedResourceId(initialResourcesForType[0]?.id ?? null);
         } else if (isMounted) {
           setResources([]);
+          setSelectedResourceType("");
           setSelectedResourceId(null);
           setErrorMessage("No resources available right now.");
         }
       } catch {
         if (isMounted) {
           setResources([]);
+          setSelectedResourceType("");
           setSelectedResourceId(null);
           setErrorMessage("Unable to load resources from database right now.");
         }
@@ -78,8 +90,24 @@ function BookingPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!selectedResourceType) {
+      setSelectedResourceId(null);
+      return;
+    }
+
+    if (!filteredResources.some((resource) => resource.id === selectedResourceId)) {
+      setSelectedResourceId(filteredResources[0]?.id ?? null);
+    }
+  }, [selectedResourceType, filteredResources, selectedResourceId]);
+
+  const handleResourceTypeChange = (event) => {
+    setSelectedResourceType(event.target.value);
+  };
+
   const handleResourceChange = (event) => {
-    setSelectedResourceId(Number(event.target.value));
+    const nextId = Number(event.target.value);
+    setSelectedResourceId(Number.isFinite(nextId) ? nextId : null);
   };
 
   const handleBookingSubmit = async (payload) => {
@@ -137,21 +165,46 @@ function BookingPage() {
         <div className="grid items-start gap-8 lg:grid-cols-5">
           <section className="lg:col-span-2">
             {selectedResource ? (
-              <ResourceCard
-                resource={selectedResource}
-                isSelected
-              />
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900">Selected Resource</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Review the selected resource details before submitting your booking.
+                </p>
+
+                <dl className="mt-5 space-y-3 text-sm">
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</dt>
+                    <dd className="mt-1 text-slate-900">{selectedResource.name || "--"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Type</dt>
+                    <dd className="mt-1 text-slate-900">{selectedResource.type || "--"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</dt>
+                    <dd className="mt-1 text-slate-900">{selectedResource.location || "--"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Capacity</dt>
+                    <dd className="mt-1 text-slate-900">{selectedResource.capacity ?? "--"}</dd>
+                  </div>
+                </dl>
+              </div>
             ) : (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-                Resource details will appear after loading from database.
+                Please select a resource to view details.
               </div>
             )}
           </section>
 
           <div className="lg:col-span-3">
             <BookingForm
-              resources={resources}
+              resourceTypes={resourceTypes}
+              selectedResourceType={selectedResourceType}
+              onResourceTypeChange={handleResourceTypeChange}
+              resources={filteredResources}
               selectedResourceId={selectedResourceId || ""}
+              selectedResource={selectedResource}
               onResourceChange={handleResourceChange}
               onSubmit={handleBookingSubmit}
               isSubmitting={isSubmitting || isLoadingResources || !selectedResourceId}

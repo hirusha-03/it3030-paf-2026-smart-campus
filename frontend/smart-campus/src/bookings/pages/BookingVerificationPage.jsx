@@ -164,6 +164,15 @@ function BookingVerificationPage() {
               </div>
 
               <div className="rounded-xl bg-slate-50 p-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</dt>
+                <dd className="mt-1 font-bold text-slate-900">
+                  {Array.isArray(booking?.resourceLocations) && booking.resourceLocations.length > 0
+                    ? booking.resourceLocations.join(', ')
+                    : '-'}
+                </dd>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-3">
                 <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Date</dt>
                 <dd className="mt-1 font-bold text-slate-900">{formatDate(booking?.date)}</dd>
               </div>
