@@ -7,6 +7,8 @@ import com.smart.backend.ResourceMgmt.enums.ResourceType;
 import com.smart.backend.ResourceMgmt.exception.ResourceNotFoundException;
 import com.smart.backend.ResourceMgmt.model.Resource;
 import com.smart.backend.ResourceMgmt.repo.ResourceRepository;
+import com.smart.backend.BookingMgmt.repo.BookingRepository;
+import com.smart.backend.BookingMgmt.model.Booking;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class ResourceService {
 
     private final ResourceRepository resourceRepository;
+    private final BookingRepository bookingRepository;
 
     public ResourceResponseDTO createResource(ResourceRequestDTO requestDTO) {
         Resource resource = new Resource();
@@ -76,6 +79,14 @@ public class ResourceService {
 
     public void deleteResource(Long id) {
         Resource resource = findById(id);
+        // Remove association from bookings to avoid FK constraint violations
+        java.util.List<Booking> bookings = bookingRepository.findByResources_Id(id);
+        if (bookings != null && !bookings.isEmpty()) {
+            for (Booking b : bookings) {
+                b.getResources().removeIf(r -> r.getId().equals(id));
+                bookingRepository.save(b);
+            }
+        }
         resourceRepository.delete(resource);
     }
 

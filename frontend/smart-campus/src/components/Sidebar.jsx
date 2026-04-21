@@ -4,7 +4,7 @@ import { LayoutDashboard, Building2, CalendarRange, Ticket, PieChart, X } from '
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const navItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-    { name: 'Facilities', icon: <Building2 size={20} />, path: '/facilities' },
+    { name: 'Facilities', icon: <Building2 size={20} />, path: '/resources' },
     { name: 'Bookings', icon: <CalendarRange size={20} />, path: '/bookings' },
     { name: 'Tickets', icon: <Ticket size={20} />, path: '/tickets' },
     { name: 'Analytics', icon: <PieChart size={20} />, path: '/analytics', adminOnly: true },
