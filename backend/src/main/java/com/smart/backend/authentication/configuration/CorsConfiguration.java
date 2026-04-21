@@ -15,6 +15,7 @@ public class CorsConfiguration {
     private static final String GET = "GET";
     private static final String POST = "POST";
     private static final String PUT = "PUT";
+    private static final String PATCH = "PATCH";
     private static final String DELETE = "DELETE";
     private static final String OPTIONS = "OPTIONS";
 
@@ -25,7 +26,7 @@ public class CorsConfiguration {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins("http://localhost:5173")
-                        .allowedMethods(GET,POST,PUT,DELETE,OPTIONS)
+                    .allowedMethods(GET, POST, PUT, PATCH, DELETE, OPTIONS)
                         .allowedHeaders("*")
                         .allowedOrigins("http://localhost:5173")
                         .allowCredentials(true);
@@ -39,7 +40,7 @@ public class CorsConfiguration {
                 new org.springframework.web.cors.CorsConfiguration();
 
         config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 

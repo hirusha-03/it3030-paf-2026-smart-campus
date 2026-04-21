@@ -71,6 +71,11 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getAllBookings(principal.getName()));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<BookingResponseDTO> getBookingById(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(bookingService.getBookingById(id, principal.getName()));
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<BookingResponseDTO> updateBookingStatus(
             @PathVariable Long id,
