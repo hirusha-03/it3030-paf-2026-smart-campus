@@ -57,4 +57,15 @@ public class PasswordResetController {
                     .body("{\"error\": \"Invalid or expired OTP\"}");
         }
     }
+
+    @PostMapping("/verify-email/send-otp")
+    public ResponseEntity<?> sendEmailVerificationOtp(@RequestBody SendOtpRequest request) {
+        try {
+            passwordResetService.sendEmailVerificationOtp(request.getEmail());
+            return ResponseEntity.ok("{\"message\": \"Verification code sent to your email\"}");
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body("{\"error\": \"Failed to send verification code. Try again.\"}");
+        }
+    }
 }

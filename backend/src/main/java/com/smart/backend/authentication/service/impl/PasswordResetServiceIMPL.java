@@ -75,4 +75,20 @@ public class PasswordResetServiceIMPL implements PasswordResetService {
         // Remove OTP after successful reset
         otpStore.remove(email);
     }
+
+    public void sendEmailVerificationOtp(String email) {
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        otpStore.save(email, otp);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Smart Campus — Email Verification");
+        message.setText(
+                "Hello,\n\n" +
+                        "Your email verification code is: " + otp + "\n\n" +
+                        "This code expires in 5 minutes.\n\n" +
+                        "Smart Campus Team"
+        );
+        mailSender.send(message);
+    }
 }
