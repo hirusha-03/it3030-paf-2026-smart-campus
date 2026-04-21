@@ -10,6 +10,9 @@ import com.smart.backend.ResourceMgmt.repo.ResourceRepository;
 import com.smart.backend.BookingMgmt.repo.BookingRepository;
 import com.smart.backend.BookingMgmt.model.Booking;
 import lombok.RequiredArgsConstructor;
+import com.smart.backend.authentication.repo.UserRepo;
+import com.smart.backend.authentication.entity.Users;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ public class ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final BookingRepository bookingRepository;
+    private final UserRepo userRepo;
 
     public ResourceResponseDTO createResource(ResourceRequestDTO requestDTO) {
         Resource resource = new Resource();
@@ -31,6 +35,19 @@ public class ResourceService {
         if (resource.getStatus() == null) {
             resource.setStatus(ResourceStatus.ACTIVE);
         }
+        // set createdBy from authenticated principal if available
+        try {
+            if (SecurityContextHolder.getContext() != null &&
+                    SecurityContextHolder.getContext().getAuthentication() != null) {
+                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                if (username != null) {
+                    java.util.Optional<Users> userOpt = userRepo.findByUserName(username);
+                    userOpt.ifPresent(resource::setCreatedBy);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
         Resource saved = resourceRepository.save(resource);
         return toDto(saved);
     }
@@ -149,7 +166,7 @@ public class ResourceService {
                 .status(resource.getStatus())
                 .imageUrl(resource.getImageUrl())
                 .amenities(resource.getAmenities())
-                .createdBy(resource.getCreatedBy() != null ? resource.getCreatedBy().getName() : null)
+                .createdBy(resource.getCreatedBy() != null ? resource.getCreatedBy().getUserName() : null)
                 .createdAt(resource.getCreatedAt())
                 .updatedAt(resource.getUpdatedAt())
                 .build();
