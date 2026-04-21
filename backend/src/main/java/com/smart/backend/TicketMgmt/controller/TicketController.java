@@ -64,6 +64,14 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.rejectTicket(id, dto, adminId));
     }
 
+    @PreAuthorize("hasRole('Admin')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+        Long adminId = getCurrentUserId();
+        ticketService.deleteTicket(id, adminId);
+        return ResponseEntity.noContent().build();
+    }
+
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User) {

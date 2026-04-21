@@ -167,6 +167,30 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
     ticket.setRejectionReason(dto.getRejectionReason());
     return mapToResponse(ticketRepo.save(ticket));
 }
+    
+    public void deleteTicket(Long ticketId, Long adminId) {
+        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+        if (!hasRole(admin, "Admin")) {
+            throw new IllegalStateException("Only ADMIN users can delete tickets");
+        }
+
+        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+        // Only allow deletion for CLOSED or REJECTED tickets
+        if (ticket.getStatus() != TicketStatus.CLOSED && ticket.getStatus() != TicketStatus.REJECTED) {
+            throw new IllegalStateException("Only CLOSED or REJECTED tickets can be deleted");
+        }
+
+        // Remove related attachments and comments first to satisfy constraints
+        try {
+            attachmentRepo.findByTicket(ticket).forEach(attachmentRepo::delete);
+        } catch (Exception ignored) {}
+        try {
+            commentRepo.findByTicketOrderByIdAsc(ticket).forEach(commentRepo::delete);
+        } catch (Exception ignored) {}
+
+        ticketRepo.delete(ticket);
+    }
     public void addComment(Long ticketId, CommentCreateDto dto, Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();

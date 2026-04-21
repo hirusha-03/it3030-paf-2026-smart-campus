@@ -1,8 +1,8 @@
 import React from 'react';
-import { Eye, UserCheck, RefreshCw } from 'lucide-react';
+import { Eye, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
 import { isAdmin, isStaff } from '../utils/roleUtils';
 
-const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) => {
+const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, onDelete, userRole }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'OPEN': return 'bg-blue-100 text-blue-800';
@@ -104,6 +104,11 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
                   {isStaff(userRole) && (
                     <button onClick={() => onUpdateStatus(ticket.id)} className="text-blue-600 hover:text-blue-900">
                       <RefreshCw size={16} />
+                    </button>
+                  )}
+                  {isAdmin(userRole) && (ticket.status === 'CLOSED' || ticket.status === 'REJECTED') && (
+                    <button onClick={() => onDelete && onDelete(ticket.id)} className="text-red-600 hover:text-red-900">
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </td>
