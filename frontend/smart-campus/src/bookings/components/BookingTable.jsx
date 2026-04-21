@@ -56,6 +56,10 @@ function getStatusClasses(status) {
     return "border-rose-200 bg-rose-50 text-rose-700";
   }
 
+  if (normalizedStatus === "CANCELLED") {
+    return "border-slate-300 bg-slate-100 text-slate-700";
+  }
+
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
@@ -66,8 +70,6 @@ function BookingTable({ bookings, onReviewClick }) {
         <table className="min-w-full divide-y divide-slate-200 text-left">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">ID</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">User</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Resource</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Date</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Time</th>
@@ -79,7 +81,7 @@ function BookingTable({ bookings, onReviewClick }) {
           <tbody className="divide-y divide-slate-100 bg-white">
             {bookings.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
                   No bookings found for this filter.
                 </td>
               </tr>
@@ -88,18 +90,15 @@ function BookingTable({ bookings, onReviewClick }) {
                 const normalizedStatus = typeof booking.status === "string"
                   ? booking.status.toUpperCase()
                   : "PENDING";
-                const resourceLabel = Array.isArray(booking.resourceIds) && booking.resourceIds.length > 0
-                  ? booking.resourceIds.join(", ")
+                const canReview = normalizedStatus === "PENDING";
+                const resourceLabel = Array.isArray(booking.resourceNames) && booking.resourceNames.length > 0
+                  ? booking.resourceNames.join(", ")
+                  : (typeof booking.resourceName === "string" && booking.resourceName.trim())
+                    ? booking.resourceName
                   : "--";
 
                 return (
                   <tr key={booking.bookingId} className="hover:bg-slate-50/60">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">
-                      #{booking.bookingId}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
-                      {booking.userName || `User #${booking.userId ?? "--"}`}
-                    </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{resourceLabel}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
                       {formatDate(booking.date)}
@@ -116,13 +115,17 @@ function BookingTable({ bookings, onReviewClick }) {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => onReviewClick(booking)}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                      >
-                        Review
-                      </button>
+                      {canReview ? (
+                        <button
+                          type="button"
+                          onClick={() => onReviewClick(booking)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        >
+                          Review
+                        </button>
+                      ) : (
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Closed</span>
+                      )}
                     </td>
                   </tr>
                 );

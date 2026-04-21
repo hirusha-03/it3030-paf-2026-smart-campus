@@ -106,10 +106,20 @@ export async function updateBookingStatus(bookingId, status, rejectionReason) {
   }
 }
 
+export async function cancelBooking(bookingId) {
+  try {
+    const response = await apiClient.patch(`/bookings/${bookingId}/cancel`);
+    return response.data;
+  } catch (error) {
+    console.error("cancelBooking failed:", error);
+    throw error;
+  }
+}
+
 export async function deleteBooking(bookingId) {
   try {
-    await apiClient.delete(`/bookings/${bookingId}`);
-    return null;
+    const response = await apiClient.delete(`/bookings/${bookingId}`);
+    return response.data;
   } catch (error) {
     console.error("deleteBooking failed:", error);
     throw error;

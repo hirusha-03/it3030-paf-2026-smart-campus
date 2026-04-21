@@ -8,6 +8,23 @@ const initialFormState = {
   expectedAttendees: "",
 };
 
+const MAX_PURPOSE_LENGTH = 500;
+
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getCurrentTimeString() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
 function decodeJwtPayload(token) {
   if (!token || typeof token !== "string") {
     return null;
@@ -36,13 +53,93 @@ function BookingForm({
   isSubmitting,
 }) {
   const [formData, setFormData] = useState(initialFormState);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
+
+  const todayDate = getTodayDateString();
+  const currentTime = getCurrentTimeString();
+  const isTodaySelected = formData.date === todayDate;
+
+  const validateForm = (data) => {
+    const errors = {};
+
+    if (!selectedResourceId) {
+      errors.resourceIds = "Please select a resource.";
+    }
+
+    if (!data.date) {
+      errors.date = "Date is required.";
+    } else if (data.date < todayDate) {
+      errors.date = "Past dates are not allowed.";
+    }
+
+    if (!data.startTime) {
+      errors.startTime = "Start time is required.";
+    }
+
+    if (!data.endTime) {
+      errors.endTime = "End time is required.";
+    }
+
+    if (data.date && data.date < todayDate) {
+      errors.startTime = errors.startTime || "Start time cannot be in the past.";
+      errors.endTime = errors.endTime || "End time cannot be in the past.";
+    }
+
+    if (data.date === todayDate && data.startTime && data.startTime < currentTime) {
+      errors.startTime = "Start time cannot be in the past for today.";
+    }
+
+    if (data.date === todayDate && data.endTime && data.endTime < currentTime) {
+      errors.endTime = "End time cannot be in the past for today.";
+    }
+
+    if (data.startTime && data.endTime && data.endTime <= data.startTime) {
+      errors.endTime = "End time must be later than start time.";
+    }
+
+    if (!data.purpose || !data.purpose.trim()) {
+      errors.purpose = "Purpose is required.";
+    } else if (data.purpose.length > MAX_PURPOSE_LENGTH) {
+      errors.purpose = `Purpose cannot exceed ${MAX_PURPOSE_LENGTH} characters.`;
+    }
+
+    if (data.expectedAttendees !== "") {
+      if (!/^\d+$/.test(data.expectedAttendees)) {
+        errors.expectedAttendees = "Expected attendees must contain numbers only.";
+      } else if (Number(data.expectedAttendees) < 1) {
+        errors.expectedAttendees = "Expected attendees must be at least 1.";
+      }
+    }
+
+    return errors;
+  };
+
+  const markFieldTouched = (name) => {
+    setTouchedFields((prev) => ({
+      ...prev,
+      [name]: true,
+    }));
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    let nextValue = value;
+    if (name === "expectedAttendees") {
+      nextValue = value.replace(/[^0-9]/g, "");
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: nextValue,
     }));
+
+    const nextData = {
+      ...formData,
+      [name]: nextValue,
+    };
+    setFieldErrors(validateForm(nextData));
   };
 
   const normalizeTime = (timeValue) => {
@@ -55,8 +152,23 @@ function BookingForm({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Support different token storage keys used in the app
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('JwtToken');
+    setTouchedFields({
+      resourceIds: true,
+      date: true,
+      startTime: true,
+      endTime: true,
+      purpose: true,
+      expectedAttendees: true,
+    });
+
+    const validationErrors = validateForm(formData);
+    setFieldErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
+    const token = localStorage.getItem("JwtToken");
     const decoded = decodeJwtPayload(token);
     const loggedInUserId = Number(decoded?.id ?? decoded?.userId ?? decoded?.sub);
 
@@ -75,6 +187,8 @@ function BookingForm({
     try {
       await onSubmit(payload);
       setFormData(initialFormState);
+      setFieldErrors({});
+      setTouchedFields({});
     } catch {
       // Error UI is handled by the parent page.
     }
@@ -98,9 +212,14 @@ function BookingForm({
             id="resourceIds"
             name="resourceIds"
             value={selectedResourceId}
-            onChange={onResourceChange}
+            onChange={(event) => {
+              onResourceChange(event);
+              markFieldTouched("resourceIds");
+              setFieldErrors(validateForm(formData));
+            }}
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             required
+            aria-invalid={Boolean(fieldErrors.resourceIds && touchedFields.resourceIds)}
           >
             {resources.map((resource) => (
               <option key={resource.id} value={resource.id}>
@@ -108,6 +227,9 @@ function BookingForm({
               </option>
             ))}
           </select>
+          {fieldErrors.resourceIds && touchedFields.resourceIds && (
+            <p className="mt-1 text-xs font-medium text-rose-700">{fieldErrors.resourceIds}</p>
+          )}
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -121,9 +243,15 @@ function BookingForm({
               type="date"
               value={formData.date}
               onChange={handleChange}
+              onBlur={() => markFieldTouched("date")}
+              min={todayDate}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               required
+              aria-invalid={Boolean(fieldErrors.date && touchedFields.date)}
             />
+            {fieldErrors.date && touchedFields.date && (
+              <p className="mt-1 text-xs font-medium text-rose-700">{fieldErrors.date}</p>
+            )}
           </div>
 
           <div>
@@ -133,13 +261,19 @@ function BookingForm({
             <input
               id="expectedAttendees"
               name="expectedAttendees"
-              type="number"
-              min="1"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={formData.expectedAttendees}
               onChange={handleChange}
+              onBlur={() => markFieldTouched("expectedAttendees")}
               placeholder="Optional"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              aria-invalid={Boolean(fieldErrors.expectedAttendees && touchedFields.expectedAttendees)}
             />
+            {fieldErrors.expectedAttendees && touchedFields.expectedAttendees && (
+              <p className="mt-1 text-xs font-medium text-rose-700">{fieldErrors.expectedAttendees}</p>
+            )}
           </div>
         </div>
 
@@ -154,9 +288,15 @@ function BookingForm({
               type="time"
               value={formData.startTime}
               onChange={handleChange}
+              onBlur={() => markFieldTouched("startTime")}
+              min={isTodaySelected ? currentTime : undefined}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               required
+              aria-invalid={Boolean(fieldErrors.startTime && touchedFields.startTime)}
             />
+            {fieldErrors.startTime && touchedFields.startTime && (
+              <p className="mt-1 text-xs font-medium text-rose-700">{fieldErrors.startTime}</p>
+            )}
           </div>
 
           <div>
@@ -169,9 +309,15 @@ function BookingForm({
               type="time"
               value={formData.endTime}
               onChange={handleChange}
+              onBlur={() => markFieldTouched("endTime")}
+              min={formData.startTime || (isTodaySelected ? currentTime : undefined)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               required
+              aria-invalid={Boolean(fieldErrors.endTime && touchedFields.endTime)}
             />
+            {fieldErrors.endTime && touchedFields.endTime && (
+              <p className="mt-1 text-xs font-medium text-rose-700">{fieldErrors.endTime}</p>
+            )}
           </div>
         </div>
 
@@ -184,11 +330,24 @@ function BookingForm({
             name="purpose"
             value={formData.purpose}
             onChange={handleChange}
+            onBlur={() => markFieldTouched("purpose")}
             rows={4}
             placeholder="Enter the purpose of this booking"
+            maxLength={MAX_PURPOSE_LENGTH}
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             required
+            aria-invalid={Boolean(fieldErrors.purpose && touchedFields.purpose)}
           />
+          <div className="mt-1 flex items-center justify-between gap-2">
+            {fieldErrors.purpose && touchedFields.purpose ? (
+              <p className="text-xs font-medium text-rose-700">{fieldErrors.purpose}</p>
+            ) : (
+              <span className="text-xs text-slate-500">Required field</span>
+            )}
+            <span className="text-xs text-slate-500">
+              {formData.purpose.length}/{MAX_PURPOSE_LENGTH}
+            </span>
+          </div>
         </div>
 
         <div className="pt-2">
