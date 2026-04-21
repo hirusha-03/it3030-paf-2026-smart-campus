@@ -8,6 +8,7 @@ import SignUp from './authentication/pages/SignUp';
 import SignIn from './authentication/pages/SignIn';
 import OAuth2Callback from './authentication/pages/OAuth2Callback';
 import Profile from './authentication/pages/Profile';
+import ForgotPassword from './authentication/pages/ForgotPassword';
 
 import BookingPage from './bookings/pages/BookingPage';
 import Bookings from './bookings/pages/Bookings';
@@ -21,6 +22,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgot-password"   element={<ForgotPassword />} />
         <Route path="/oauth2/callback" element={<OAuth2Callback />} />
 
         {/* Protected / Layout routes */}
