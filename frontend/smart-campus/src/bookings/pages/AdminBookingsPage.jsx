@@ -39,8 +39,20 @@ function withResourceNames(booking, resourceNameMap) {
       .filter(Boolean)
     : [];
 
+  const normalizedUserName =
+    booking?.userName ||
+    booking?.username ||
+    booking?.user?.userName ||
+    booking?.user?.username ||
+    booking?.name ||
+    booking?.fullName ||
+    booking?.email ||
+    booking?.user?.email ||
+    "Unknown User";
+
   return {
     ...booking,
+    userName: normalizedUserName,
     resourceNames,
   };
 }

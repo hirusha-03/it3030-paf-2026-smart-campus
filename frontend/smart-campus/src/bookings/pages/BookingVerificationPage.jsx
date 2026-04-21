@@ -20,14 +20,12 @@ function formatDate(value) {
   });
 }
 
-function formatTime(startTime, endTime) {
-  if (!startTime && !endTime) {
+function formatSingleTime(value) {
+  if (!value) {
     return '-';
   }
 
-  const start = startTime || '--:--';
-  const end = endTime || '--:--';
-  return `${start} - ${end}`;
+  return value;
 }
 
 function getUserDisplay(booking) {
@@ -35,9 +33,8 @@ function getUserDisplay(booking) {
     return { label: 'User', value: '-' };
   }
 
-  if (booking.userName || booking.userEmail) {
-    const value = [booking.userName, booking.userEmail].filter(Boolean).join(' • ');
-    return { label: 'User', value };
+  if (booking.userName) {
+    return { label: 'User Name', value: booking.userName };
   }
 
   if (booking.userId !== undefined && booking.userId !== null) {
@@ -158,10 +155,10 @@ function BookingVerificationPage() {
               </div>
 
               <div className="rounded-xl bg-slate-50 p-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Resource ID</dt>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Resource</dt>
                 <dd className="mt-1 font-bold text-slate-900">
-                  {Array.isArray(booking?.resourceIds) && booking.resourceIds.length > 0
-                    ? booking.resourceIds.join(', ')
+                  {Array.isArray(booking?.resourceNames) && booking.resourceNames.length > 0
+                    ? booking.resourceNames.join(', ')
                     : '-'}
                 </dd>
               </div>
@@ -172,8 +169,18 @@ function BookingVerificationPage() {
               </div>
 
               <div className="rounded-xl bg-slate-50 p-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Time</dt>
-                <dd className="mt-1 font-bold text-slate-900">{formatTime(booking?.startTime, booking?.endTime)}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Start Time</dt>
+                <dd className="mt-1 font-bold text-slate-900">{formatSingleTime(booking?.startTime)}</dd>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">End Time</dt>
+                <dd className="mt-1 font-bold text-slate-900">{formatSingleTime(booking?.endTime)}</dd>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Attendees</dt>
+                <dd className="mt-1 font-bold text-slate-900">{booking?.expectedAttendees ?? '-'}</dd>
               </div>
 
               <div className="rounded-xl bg-slate-50 p-3 sm:col-span-2">

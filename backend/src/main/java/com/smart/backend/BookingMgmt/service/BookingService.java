@@ -12,6 +12,9 @@ import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.UserRepo;
 import java.util.List;
 import java.util.Objects;
+import java.util.StringJoiner;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,13 +109,19 @@ public class BookingService {
         Users actor = resolveAuthenticatedUser(authenticatedUsername);
 
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("Booking not found with id: " + bookingId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found with id: " + bookingId));
 
         boolean isAdmin = hasRole(actor, "Admin");
-        boolean isOwner = booking.getUser() != null && booking.getUser().getUserId() == actor.getUserId();
+        boolean isOwner = booking.getUser() != null
+                && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
+
+        // For QR verification flow, any authenticated user can validate approved bookings.
+        if (booking.getStatus() == BookingStatus.APPROVED) {
+            return toResponseDTO(booking);
+        }
 
         if (!isAdmin && !isOwner) {
-            throw new SecurityException("You are not allowed to view this booking.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to view this booking.");
         }
 
         return toResponseDTO(booking);
@@ -155,7 +164,8 @@ public class BookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found with id: " + bookingId));
 
         boolean isAdmin = hasRole(actor, "Admin");
-        boolean isOwner = booking.getUser() != null && booking.getUser().getUserId() == actor.getUserId();
+        boolean isOwner = booking.getUser() != null
+            && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
 
         if (!isAdmin && !isOwner) {
             throw new SecurityException("You are not allowed to cancel this booking.");
@@ -200,7 +210,9 @@ public class BookingService {
         return new BookingResponseDTO(
                 booking.getBookingId(),
                 (long) booking.getUser().getUserId(),
+                resolveUserDisplayName(booking.getUser()),
                 booking.getResources().stream().map(Resource::getId).toList(),
+                booking.getResources().stream().map(Resource::getName).toList(),
                 booking.getDate(),
                 booking.getStartTime(),
                 booking.getEndTime(),
@@ -209,5 +221,33 @@ public class BookingService {
                 booking.getStatus(),
                 booking.getRejectionReason()
         );
+    }
+
+    private String resolveUserDisplayName(Users user) {
+        if (user == null) {
+            return "Unknown User";
+        }
+
+        if (user.getUserName() != null && !user.getUserName().isBlank()) {
+            return user.getUserName();
+        }
+
+        StringJoiner fullName = new StringJoiner(" ");
+        if (user.getUserFirstName() != null && !user.getUserFirstName().isBlank()) {
+            fullName.add(user.getUserFirstName().trim());
+        }
+        if (user.getUserLastName() != null && !user.getUserLastName().isBlank()) {
+            fullName.add(user.getUserLastName().trim());
+        }
+        String fullNameValue = fullName.toString();
+        if (!fullNameValue.isBlank()) {
+            return fullNameValue;
+        }
+
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            return user.getEmail();
+        }
+
+        return "Unknown User";
     }
 }

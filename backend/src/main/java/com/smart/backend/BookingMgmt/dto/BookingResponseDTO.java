@@ -15,7 +15,9 @@ public class BookingResponseDTO {
 
     private Long bookingId;
     private Long userId;
+    private String userName;
     private List<Long> resourceIds;
+    private List<String> resourceNames;
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
