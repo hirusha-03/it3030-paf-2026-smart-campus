@@ -184,8 +184,34 @@ public class BookingService {
 
     @Transactional
     public void deleteBooking(Long bookingId, String authenticatedUsername) {
-        // Keep backward compatibility for clients still using DELETE as cancel.
-        cancelBooking(bookingId, authenticatedUsername);
+        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found with id: " + bookingId));
+
+        boolean isAdmin = hasRole(actor, "Admin");
+        boolean isOwner = booking.getUser() != null
+                && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
+
+        if (!isAdmin && !isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to delete this booking.");
+        }
+
+        BookingStatus status = booking.getStatus();
+        if (isAdmin) {
+            if (status != BookingStatus.APPROVED && status != BookingStatus.REJECTED && status != BookingStatus.CANCELLED) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Admin can delete only APPROVED, REJECTED, or CANCELLED bookings."
+                );
+            }
+        } else if (status != BookingStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only CANCELLED bookings can be deleted.");
+        }
+
+        booking.getResources().clear();
+        bookingRepository.save(booking);
+        bookingRepository.delete(booking);
     }
 
     private Users resolveAuthenticatedUser(String authenticatedUsername) {

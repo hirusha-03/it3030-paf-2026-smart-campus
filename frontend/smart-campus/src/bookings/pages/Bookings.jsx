@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { cancelBooking, getAvailableResources, getMyBookings } from '../api/bookingApi';
+import { cancelBooking, deleteBooking, getAvailableResources, getMyBookings } from '../api/bookingApi';
 import BookingCard from '../components/BookingCard';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -42,6 +42,7 @@ function Bookings() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [cancelInProgressId, setCancelInProgressId] = useState(null);
+  const [deleteInProgressId, setDeleteInProgressId] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -116,6 +117,24 @@ function Bookings() {
     }
   };
 
+  const handleDeleteBooking = async (bookingId) => {
+    setErrorMessage('');
+    setDeleteInProgressId(bookingId);
+
+    try {
+      await deleteBooking(bookingId);
+      setBookings((prev) => prev.filter((booking) => booking.bookingId !== bookingId));
+    } catch (error) {
+      const backendMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        'Unable to delete this booking right now. Please try again.';
+      setErrorMessage(backendMessage);
+    } finally {
+      setDeleteInProgressId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
@@ -155,6 +174,8 @@ function Bookings() {
                 booking={booking}
                 onCancel={handleCancelBooking}
                 isCancelling={cancelInProgressId === booking.bookingId}
+                onDelete={handleDeleteBooking}
+                isDeleting={deleteInProgressId === booking.bookingId}
               />
             ))}
           </section>
