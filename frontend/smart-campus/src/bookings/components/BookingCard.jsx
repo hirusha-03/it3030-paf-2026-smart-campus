@@ -41,13 +41,17 @@ function formatDate(dateValue) {
   }).format(date);
 }
 
-function BookingCard({ booking, onCancel, isCancelling }) {
+function BookingCard({ booking, onCancel, isCancelling, onDelete, isDeleting }) {
   const canCancel = booking?.status === 'APPROVED';
+  const canDelete = booking?.status === 'CANCELLED';
   const showQRCode = booking?.status === 'APPROVED';
   const resourceLabel = Array.isArray(booking?.resourceNames) && booking.resourceNames.length > 0
     ? booking.resourceNames.join(', ')
     : (typeof booking?.resourceName === 'string' && booking.resourceName.trim())
       ? booking.resourceName
+    : '--';
+  const locationLabel = Array.isArray(booking?.resourceLocations) && booking.resourceLocations.length > 0
+    ? booking.resourceLocations.join(', ')
     : '--';
 
   return (
@@ -79,6 +83,10 @@ function BookingCard({ booking, onCancel, isCancelling }) {
               <dd className="mt-1 text-sm text-slate-800">{booking.expectedAttendees ?? '--'}</dd>
             </div>
             <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</dt>
+              <dd className="mt-1 text-sm text-slate-800">{locationLabel}</dd>
+            </div>
+            <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Purpose</dt>
               <dd className="mt-1 text-sm text-slate-800">{booking.purpose || '--'}</dd>
             </div>
@@ -91,7 +99,7 @@ function BookingCard({ booking, onCancel, isCancelling }) {
           )}
 
           {canCancel && (
-            <div className="mt-5">
+            <div className="mt-5 flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => onCancel(booking.bookingId)}
@@ -99,6 +107,28 @@ function BookingCard({ booking, onCancel, isCancelling }) {
                 className="inline-flex items-center rounded-lg border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
+              </button>
+            </div>
+          )}
+
+          {canDelete && (
+            <div className="mt-5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onDelete(booking.bookingId)}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                title="Delete cancelled booking"
+                aria-label="Delete cancelled booking"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                </svg>
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           )}

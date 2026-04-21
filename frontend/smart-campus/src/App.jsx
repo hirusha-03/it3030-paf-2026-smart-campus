@@ -13,6 +13,7 @@ import ForgotPassword from './authentication/pages/ForgotPassword';
 import BookingPage from './bookings/pages/BookingPage';
 import Bookings from './bookings/pages/Bookings';
 import AdminBookingsPage from './bookings/pages/AdminBookingsPage';
+import BookingVerificationPage from './bookings/pages/BookingVerificationPage';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
         {/* Booking routes (outside layout if needed) */}
         <Route path="/bookings" element={<BookingPage />} />
         <Route path="/my-bookings" element={<Bookings />} />
+        <Route path="/verify/:id" element={<BookingVerificationPage />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />

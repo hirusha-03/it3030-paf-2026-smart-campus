@@ -12,6 +12,9 @@ import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.UserRepo;
 import java.util.List;
 import java.util.Objects;
+import java.util.StringJoiner;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,6 +104,29 @@ public class BookingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public BookingResponseDTO getBookingById(Long bookingId, String authenticatedUsername) {
+        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found with id: " + bookingId));
+
+        boolean isAdmin = hasRole(actor, "Admin");
+        boolean isOwner = booking.getUser() != null
+                && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
+
+        // For QR verification flow, any authenticated user can validate approved bookings.
+        if (booking.getStatus() == BookingStatus.APPROVED) {
+            return toResponseDTO(booking);
+        }
+
+        if (!isAdmin && !isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to view this booking.");
+        }
+
+        return toResponseDTO(booking);
+    }
+
     @Transactional
     public BookingResponseDTO updateBookingStatus(
             Long bookingId,
@@ -138,7 +164,8 @@ public class BookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found with id: " + bookingId));
 
         boolean isAdmin = hasRole(actor, "Admin");
-        boolean isOwner = booking.getUser() != null && booking.getUser().getUserId() == actor.getUserId();
+        boolean isOwner = booking.getUser() != null
+            && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
 
         if (!isAdmin && !isOwner) {
             throw new SecurityException("You are not allowed to cancel this booking.");
@@ -157,8 +184,34 @@ public class BookingService {
 
     @Transactional
     public void deleteBooking(Long bookingId, String authenticatedUsername) {
-        // Keep backward compatibility for clients still using DELETE as cancel.
-        cancelBooking(bookingId, authenticatedUsername);
+        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found with id: " + bookingId));
+
+        boolean isAdmin = hasRole(actor, "Admin");
+        boolean isOwner = booking.getUser() != null
+                && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
+
+        if (!isAdmin && !isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to delete this booking.");
+        }
+
+        BookingStatus status = booking.getStatus();
+        if (isAdmin) {
+            if (status != BookingStatus.APPROVED && status != BookingStatus.REJECTED && status != BookingStatus.CANCELLED) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Admin can delete only APPROVED, REJECTED, or CANCELLED bookings."
+                );
+            }
+        } else if (status != BookingStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only CANCELLED bookings can be deleted.");
+        }
+
+        booking.getResources().clear();
+        bookingRepository.save(booking);
+        bookingRepository.delete(booking);
     }
 
     private Users resolveAuthenticatedUser(String authenticatedUsername) {
@@ -183,7 +236,10 @@ public class BookingService {
         return new BookingResponseDTO(
                 booking.getBookingId(),
                 (long) booking.getUser().getUserId(),
+                resolveUserDisplayName(booking.getUser()),
                 booking.getResources().stream().map(Resource::getId).toList(),
+                booking.getResources().stream().map(Resource::getName).toList(),
+            booking.getResources().stream().map(Resource::getLocation).toList(),
                 booking.getDate(),
                 booking.getStartTime(),
                 booking.getEndTime(),
@@ -192,5 +248,33 @@ public class BookingService {
                 booking.getStatus(),
                 booking.getRejectionReason()
         );
+    }
+
+    private String resolveUserDisplayName(Users user) {
+        if (user == null) {
+            return "Unknown User";
+        }
+
+        if (user.getUserName() != null && !user.getUserName().isBlank()) {
+            return user.getUserName();
+        }
+
+        StringJoiner fullName = new StringJoiner(" ");
+        if (user.getUserFirstName() != null && !user.getUserFirstName().isBlank()) {
+            fullName.add(user.getUserFirstName().trim());
+        }
+        if (user.getUserLastName() != null && !user.getUserLastName().isBlank()) {
+            fullName.add(user.getUserLastName().trim());
+        }
+        String fullNameValue = fullName.toString();
+        if (!fullNameValue.isBlank()) {
+            return fullNameValue;
+        }
+
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            return user.getEmail();
+        }
+
+        return "Unknown User";
     }
 }

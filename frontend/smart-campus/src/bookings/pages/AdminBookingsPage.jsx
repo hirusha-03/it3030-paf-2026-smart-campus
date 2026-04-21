@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAllBookings, getAvailableResources, updateBookingStatus } from "../api/bookingApi";
+import { deleteBooking, getAllBookings, getAvailableResources, updateBookingStatus } from "../api/bookingApi";
 import BookingTable from "../components/BookingTable";
 import ReviewModal from "../components/ReviewModal";
 
@@ -39,8 +39,20 @@ function withResourceNames(booking, resourceNameMap) {
       .filter(Boolean)
     : [];
 
+  const normalizedUserName =
+    booking?.userName ||
+    booking?.username ||
+    booking?.user?.userName ||
+    booking?.user?.username ||
+    booking?.name ||
+    booking?.fullName ||
+    booking?.email ||
+    booking?.user?.email ||
+    "Unknown User";
+
   return {
     ...booking,
+    userName: normalizedUserName,
     resourceNames,
   };
 }
@@ -51,6 +63,7 @@ function AdminBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [deletingBookingId, setDeletingBookingId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
   const [selectedBooking, setSelectedBooking] = useState(null);
 
@@ -164,6 +177,27 @@ function AdminBookingsPage() {
     }
   };
 
+  const handleDelete = async (booking) => {
+    setErrorMessage("");
+    setDeletingBookingId(booking.bookingId);
+
+    try {
+      await deleteBooking(booking.bookingId);
+      setBookings((prev) => prev.filter((item) => item.bookingId !== booking.bookingId));
+      if (selectedBooking?.bookingId === booking.bookingId) {
+        closeModal();
+      }
+    } catch (error) {
+      const backendMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Unable to delete this booking. Please try again.";
+      setErrorMessage(backendMessage);
+    } finally {
+      setDeletingBookingId(null);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-2 py-2 sm:px-4 sm:py-4">
         <header className="mb-8">
@@ -208,7 +242,12 @@ function AdminBookingsPage() {
             <p className="text-sm font-medium text-slate-600">Loading booking requests...</p>
           </div>
         ) : (
-          <BookingTable bookings={filteredBookings} onReviewClick={handleReviewClick} />
+          <BookingTable
+            bookings={filteredBookings}
+            onReviewClick={handleReviewClick}
+            onDeleteClick={handleDelete}
+            deletingBookingId={deletingBookingId}
+          />
         )}
       
 
