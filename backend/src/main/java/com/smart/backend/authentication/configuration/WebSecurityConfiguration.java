@@ -68,9 +68,12 @@ public class WebSecurityConfiguration {
                         .requestMatchers(
                                 "/api/v1/authentication",
                                 "/api/v1/user/register-new-user",
+                                "/api/v1/user/check-username",
+                                "/api/v1/user/check-email",
                                 "/oauth2/**",
                                 "/api/v1/password/send-otp",
                                 "/api/v1/password/verify-otp",
+                                "/api/v1/password/verify-email/send-otp",
                                 "/api/v1/password/reset"
                         ).permitAll()
                         .anyRequest().authenticated()
