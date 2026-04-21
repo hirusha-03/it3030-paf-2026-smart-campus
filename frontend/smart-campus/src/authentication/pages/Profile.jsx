@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   UserCircle, Mail, Phone, User, Shield,
-  CalendarRange, Ticket, LogOut
+  CalendarRange, Ticket, LogOut, Lock
 } from 'lucide-react';
+import ResetPassword from '../pages/ResetPassword';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState("");
+  const [error, setError] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -77,7 +79,7 @@ export default function Profile() {
   const getInitials = () => {
     if (!user) return 'U';
     const f = user.userFirstName?.[0] || '';
-    const l = user.userLastName?.[0]  || '';
+    const l = user.userLastName?.[0] || '';
     return (f + l).toUpperCase() || user.userName?.[0]?.toUpperCase() || 'U';
   };
 
@@ -93,7 +95,7 @@ export default function Profile() {
     const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
     return roles[0]?.replace('ROLE_', '') || 'User';
   };
-  const isGoogleUser = () => !user?.userPassword || user?.userPassword === '';
+  const isGoogleUser = () => user?.provider === "Google";
 
   if (loading) {
     return (
@@ -174,6 +176,26 @@ export default function Profile() {
             <LogOut size={15} />
             Sign out
           </button>
+
+          {!isGoogleUser() && (
+            <button
+              onClick={() => setShowResetPassword(true)}
+              className="w-full h-9 mt-2 bg-slate-50 hover:bg-slate-100 border border-slate-200
+                text-slate-600 rounded-xl text-sm font-medium flex items-center
+                justify-center gap-2 transition-colors"
+            >
+              <Lock size={15} />
+              Reset password
+            </button>
+          )}
+
+          {/* Reset password modal */}
+          {showResetPassword && (
+            <ResetPassword
+              userEmail={user?.email}
+              onClose={() => setShowResetPassword(false)}
+            />
+          )}
         </div>
 
         {/* Right card */}
@@ -182,12 +204,12 @@ export default function Profile() {
             Personal information
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-            <InfoField icon={<User size={14} />}       label="First name"      value={user?.userFirstName} />
-            <InfoField icon={<User size={14} />}       label="Last name"       value={user?.userLastName} />
-            <InfoField icon={<UserCircle size={14} />} label="Username"        value={user?.userName} />
-            <InfoField icon={<Mail size={14} />}       label="Email"           value={user?.email} />
-            <InfoField icon={<Phone size={14} />}      label="Contact number"  value={user?.contactNumber} />
-            <InfoField icon={<Shield size={14} />}     label="Role"            value={getRole()} />
+            <InfoField icon={<User size={14} />} label="First name" value={user?.userFirstName} />
+            <InfoField icon={<User size={14} />} label="Last name" value={user?.userLastName} />
+            <InfoField icon={<UserCircle size={14} />} label="Username" value={user?.userName} />
+            <InfoField icon={<Mail size={14} />} label="Email" value={user?.email} />
+            <InfoField icon={<Phone size={14} />} label="Contact number" value={user?.contactNumber} />
+            <InfoField icon={<Shield size={14} />} label="Role" value={getRole()} />
           </div>
 
           <h3 className="text-sm font-semibold text-slate-700 mb-4 pb-3 border-b border-slate-100">
