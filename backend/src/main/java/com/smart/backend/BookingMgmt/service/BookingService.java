@@ -101,6 +101,23 @@ public class BookingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public BookingResponseDTO getBookingById(Long bookingId, String authenticatedUsername) {
+        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found with id: " + bookingId));
+
+        boolean isAdmin = hasRole(actor, "Admin");
+        boolean isOwner = booking.getUser() != null && booking.getUser().getUserId() == actor.getUserId();
+
+        if (!isAdmin && !isOwner) {
+            throw new SecurityException("You are not allowed to view this booking.");
+        }
+
+        return toResponseDTO(booking);
+    }
+
     @Transactional
     public BookingResponseDTO updateBookingStatus(
             Long bookingId,

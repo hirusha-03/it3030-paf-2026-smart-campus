@@ -88,6 +88,16 @@ export async function getAllBookings() {
   }
 }
 
+export const getBookingById = async (id) => {
+  try {
+    const response = await apiClient.get(`/bookings/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("getBookingById failed:", error);
+    throw error;
+  }
+};
+
 export async function updateBookingStatus(bookingId, status, rejectionReason) {
   try {
     const params = { status };
