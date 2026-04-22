@@ -2,12 +2,30 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getResourceById, deleteResource, updateResourceStatus } from "../api/resourceService";
 
-function ResourceDetails({ isAdmin }) {
+// Helper function to check if user is admin
+const isUserAdmin = () => {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user) return false;
+    
+    const userData = JSON.parse(user);
+    const roles = userData?.roles || [];
+    const userRole = Array.isArray(roles) ? roles[0] : roles;
+    
+    return userRole?.toLowerCase() === 'admin' || 
+           userRole?.replace('ROLE_', '').toLowerCase() === 'admin';
+  } catch {
+    return false;
+  }
+};
+
+function ResourceDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [resource, setResource] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const isAdmin = isUserAdmin();
 
   useEffect(() => {
     fetchResource();
@@ -17,7 +35,6 @@ function ResourceDetails({ isAdmin }) {
     setLoading(true);
     try {
       const response = await getResourceById(id);
-      // resourceService returns response.data (backend DTO) or a wrapped object { success, data }
       const data = response?.data ?? response;
       if (data) {
         setResource(data);
