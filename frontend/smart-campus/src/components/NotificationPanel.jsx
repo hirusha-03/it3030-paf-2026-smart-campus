@@ -21,6 +21,12 @@ const TYPE_STYLES = {
     label: 'Cancelled',
     color: 'text-amber-700',
   },
+  BOOKING_CREATED: {
+    dot:   'bg-indigo-500',
+    bg:    'bg-indigo-50 border-indigo-100',
+    label: 'New booking',
+    color: 'text-indigo-700',
+  },
 };
 
 function timeAgo(dateStr) {

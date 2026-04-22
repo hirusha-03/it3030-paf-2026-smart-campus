@@ -77,6 +77,28 @@ public class BookingService {
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+
+        // Notify all admins about the new booking
+        String resourceNames = resources.stream()
+                .map(Resource::getName)
+                .collect(java.util.stream.Collectors.joining(", "));
+
+        String bookerName = resolveUserDisplayName(user);
+
+        List<Users> admins = userRepo.findAllAdmins();
+
+        admins.forEach(admin ->
+                notificationService.createNotification(
+                        admin,
+                        "New Booking Request",
+                        bookerName + " has requested a booking for " + resourceNames +
+                                " on " + request.getDate() +
+                                " from " + request.getStartTime() +
+                                " to " + request.getEndTime() + ".",
+                        "BOOKING_CREATED",
+                        saved.getBookingId()
+                )
+        );
         return toResponseDTO(saved);
     }
 
