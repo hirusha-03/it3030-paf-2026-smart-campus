@@ -5,6 +5,7 @@ import com.smart.backend.BookingMgmt.dto.BookingResponseDTO;
 import com.smart.backend.BookingMgmt.model.Booking;
 import com.smart.backend.BookingMgmt.model.Booking.BookingStatus;
 import com.smart.backend.BookingMgmt.repo.BookingRepository;
+import com.smart.backend.Notification.service.NotificationService;
 import com.smart.backend.ResourceMgmt.model.Resource;
 import com.smart.backend.ResourceMgmt.repo.ResourceRepository;
 import com.smart.backend.authentication.entity.Role;
@@ -13,6 +14,8 @@ import com.smart.backend.authentication.repo.UserRepo;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,9 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepo userRepo;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public BookingService(BookingRepository bookingRepository, ResourceRepository resourceRepository, UserRepo userRepo) {
         this.bookingRepository = bookingRepository;
@@ -153,6 +159,33 @@ public class BookingService {
         booking.setRejectionReason(newStatus == BookingStatus.REJECTED ? rejectionReason.trim() : null);
 
         Booking updated = bookingRepository.save(booking);
+
+        // Send notification to booking owner
+        Users bookingOwner = booking.getUser();
+        String resourceNames = booking.getResources().stream()
+                .map(Resource::getName)
+                .collect(java.util.stream.Collectors.joining(", "));
+
+        if (newStatus == BookingStatus.APPROVED) {
+            notificationService.createNotification(
+                    bookingOwner,
+                    "Booking Approved",
+                    "Your booking for " + resourceNames + " on " +
+                            booking.getDate() + " has been approved.",
+                    "BOOKING_APPROVED",
+                    bookingId
+            );
+        } else {
+            notificationService.createNotification(
+                    bookingOwner,
+                    "Booking Rejected",
+                    "Your booking for " + resourceNames + " on " +
+                            booking.getDate() + " was rejected. Reason: " + rejectionReason,
+                    "BOOKING_REJECTED",
+                    bookingId
+            );
+        }
+
         return toResponseDTO(updated);
     }
 
@@ -179,6 +212,22 @@ public class BookingService {
         booking.setRejectionReason(null);
 
         Booking updated = bookingRepository.save(booking);
+
+        // Notify owner if admin cancelled it
+        if (isAdmin && !isOwner) {
+            String resourceNames = booking.getResources().stream()
+                    .map(Resource::getName)
+                    .collect(java.util.stream.Collectors.joining(", "));
+
+            notificationService.createNotification(
+                    booking.getUser(),
+                    "Booking Cancelled",
+                    "Your booking for " + resourceNames + " on " +
+                            booking.getDate() + " has been cancelled by admin.",
+                    "BOOKING_CANCELLED",
+                    bookingId
+            );
+        }
         return toResponseDTO(updated);
     }
 
@@ -277,4 +326,6 @@ public class BookingService {
 
         return "Unknown User";
     }
+
+
 }
