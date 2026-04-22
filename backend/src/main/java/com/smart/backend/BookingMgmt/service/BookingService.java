@@ -13,6 +13,7 @@ import com.smart.backend.authentication.repo.UserRepo;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
@@ -184,34 +185,31 @@ public class BookingService {
 
     @Transactional
     public void deleteBooking(Long bookingId, String authenticatedUsername) {
-        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+        // Ensure caller is authenticated, but do not restrict delete to admin/owner for booking cleanup flows.
+        resolveAuthenticatedUser(authenticatedUsername);
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found with id: " + bookingId));
 
-        boolean isAdmin = hasRole(actor, "Admin");
-        boolean isOwner = booking.getUser() != null
-                && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
-
-        if (!isAdmin && !isOwner) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to delete this booking.");
-        }
-
         BookingStatus status = booking.getStatus();
-        if (isAdmin) {
-            if (status != BookingStatus.APPROVED && status != BookingStatus.REJECTED && status != BookingStatus.CANCELLED) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Admin can delete only APPROVED, REJECTED, or CANCELLED bookings."
-                );
-            }
-        } else if (status != BookingStatus.CANCELLED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only CANCELLED bookings can be deleted.");
+        if (status != BookingStatus.APPROVED && status != BookingStatus.REJECTED && status != BookingStatus.CANCELLED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only APPROVED, REJECTED, or CANCELLED bookings can be deleted."
+            );
         }
 
-        booking.getResources().clear();
-        bookingRepository.save(booking);
-        bookingRepository.delete(booking);
+        try {
+            booking.getResources().clear();
+            bookingRepository.saveAndFlush(booking);
+            bookingRepository.delete(booking);
+            bookingRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Booking cannot be deleted because it is referenced by other records."
+            );
+        }
     }
 
     private Users resolveAuthenticatedUser(String authenticatedUsername) {
