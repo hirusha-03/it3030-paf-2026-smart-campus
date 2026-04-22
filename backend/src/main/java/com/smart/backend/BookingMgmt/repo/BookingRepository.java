@@ -47,4 +47,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                 List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED)
         );
     }
+
+    // --- Analytics queries ---
+    @Query("SELECT r.id, r.name, COUNT(b) FROM Booking b JOIN b.resources r GROUP BY r.id, r.name ORDER BY COUNT(b) DESC")
+    java.util.List<Object[]> findTopResources(org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT HOUR(b.startTime), COUNT(b) FROM Booking b GROUP BY HOUR(b.startTime) ORDER BY HOUR(b.startTime)")
+    java.util.List<Object[]> countBookingsByStartHour();
+
+    @Query("SELECT b.date, COUNT(b) FROM Booking b WHERE b.date BETWEEN :start AND :end GROUP BY b.date ORDER BY b.date")
+    java.util.List<Object[]> countBookingsByDateBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    // Spring Data method to fetch bookings in date range (useful for utilization calculations)
+    java.util.List<Booking> findByDateBetween(LocalDate start, LocalDate end);
+
 }

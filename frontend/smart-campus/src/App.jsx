@@ -18,6 +18,7 @@ import ResourcesPage from './resourceMgmt/pages/ResourcesPage';
 import ResourceDetailsPage from './resourceMgmt/pages/ResourceDetailsPage';
 import ResourceCreatePage from './resourceMgmt/pages/ResourceCreatePage';
 import ResourceEditPage from './resourceMgmt/pages/ResourceEditPage';
+import Analytics from './pages/Analytics';
 
 function App() {
   return (
@@ -42,6 +43,9 @@ function App() {
           <Route path="/resources/:id" element={<ResourceDetailsPage />} />
           <Route path="/resources/create" element={<ResourceCreatePage />} />
           <Route path="/resources/edit/:id" element={<ResourceEditPage />} />
+
+          {/* Analytics */}
+          <Route path="/analytics" element={<Analytics />} />
         </Route>
 
         {/* Booking routes */}
