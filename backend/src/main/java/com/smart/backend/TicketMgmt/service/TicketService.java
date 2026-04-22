@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.Base64;
 
 @Service
 public class TicketService {
@@ -43,7 +44,21 @@ public class TicketService {
             if (dto.getAttachmentFilePaths().size() > 3) {
                 throw new IllegalArgumentException("Maximum 3 attachments allowed per ticket");
             }
+            final long maxBytes = 5L * 1024L * 1024L; // 5 MB
             for (String path : dto.getAttachmentFilePaths()) {
+                if (path != null && path.startsWith("data:") && path.contains(",")) {
+                    String base64 = path.substring(path.indexOf(',') + 1);
+                    try {
+                        byte[] decoded = Base64.getDecoder().decode(base64);
+                        if (decoded.length > maxBytes) {
+                            throw new IllegalArgumentException("Attachment exceeds maximum allowed size of 5 MB");
+                        }
+                    } catch (IllegalArgumentException iae) {
+                        throw iae; // rethrow size/decoding issues
+                    } catch (Exception ex) {
+                        throw new IllegalArgumentException("Invalid attachment data");
+                    }
+                }
                 Attachment att = new Attachment();
                 att.setFilePath(path);
                 att.setTicket(ticket);

@@ -4,7 +4,7 @@ import TicketTable from '../components/TicketTable';
 import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
-import { getTickets, createTicket, assignTicket, getCurrentUser, deleteTicket } from '../api/ticketService';
+import { getTickets, createTicket, uploadAttachment, assignTicket, getCurrentUser, deleteTicket } from '../api/ticketService';
 import { normalizeRole, isStaff } from '../utils/roleUtils';
 
 const Tickets = () => {
@@ -64,23 +64,22 @@ const Tickets = () => {
   
   const handleCreateTicket = async (ticketData) => {
     try {
-      const attachmentFilePaths = ticketData.attachments
-        ? await Promise.all(ticketData.attachments.map(readFileAsDataUrl))
-        : [];
-
-      const payload = {
-        ...ticketData,
-        attachmentFilePaths,
-      };
+      // Create ticket first without attachments (attachments uploaded separately)
+      const payload = { ...ticketData };
       delete payload.attachments;
+      const created = await createTicket(payload);
 
-      await createTicket(payload);
+      // Upload attachments one-by-one
+      if (ticketData.attachments && ticketData.attachments.length > 0) {
+        await Promise.all(ticketData.attachments.map((f) => uploadAttachment(created.id, f)));
+      }
       alert('Ticket created successfully!');
       setIsFormModalOpen(false);
       fetchTickets(); // Refresh list
     } catch (error) {
       console.error('Failed to create ticket:', error);
-      alert('Failed to create ticket: ' + error.message);
+      const serverMessage = error.response?.data?.message || error.message || 'Network error';
+      alert('Failed to create ticket: ' + serverMessage);
     }
   };
 
