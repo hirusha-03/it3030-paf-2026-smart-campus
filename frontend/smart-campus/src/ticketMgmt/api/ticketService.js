@@ -22,7 +22,8 @@ const bookingApi = axios.create({
 const addAuthInterceptor = (api) => {
   api.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem('authToken'); // Assuming token is stored in localStorage
+      // Read either of the possible token keys used across the app
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }

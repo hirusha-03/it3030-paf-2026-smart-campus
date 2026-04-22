@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAllBookings, updateBookingStatus } from "../api/bookingApi";
+import { deleteBooking, getAllBookings, getAvailableResources, updateBookingStatus } from "../api/bookingApi";
 import BookingTable from "../components/BookingTable";
 import ReviewModal from "../components/ReviewModal";
 
-const FILTER_OPTIONS = ["All", "Pending", "Approved", "Rejected"];
+const FILTER_OPTIONS = ["All", "Pending", "Approved", "Rejected", "Cancelled"];
 
 function normalizeStatus(status) {
   if (typeof status !== "string") {
@@ -13,11 +13,57 @@ function normalizeStatus(status) {
   return status.toUpperCase();
 }
 
+function buildResourceNameMap(resources) {
+  const map = {};
+
+  if (!Array.isArray(resources)) {
+    return map;
+  }
+
+  resources.forEach((resource) => {
+    const resourceId = Number(resource?.id);
+    if (!Number.isInteger(resourceId)) {
+      return;
+    }
+
+    map[resourceId] = resource?.name || `Resource #${resourceId}`;
+  });
+
+  return map;
+}
+
+function withResourceNames(booking, resourceNameMap) {
+  const resourceNames = Array.isArray(booking?.resourceIds)
+    ? booking.resourceIds
+      .map((resourceId) => resourceNameMap[Number(resourceId)])
+      .filter(Boolean)
+    : [];
+
+  const normalizedUserName =
+    booking?.userName ||
+    booking?.username ||
+    booking?.user?.userName ||
+    booking?.user?.username ||
+    booking?.name ||
+    booking?.fullName ||
+    booking?.email ||
+    booking?.user?.email ||
+    "Unknown User";
+
+  return {
+    ...booking,
+    userName: normalizedUserName,
+    resourceNames,
+  };
+}
+
 function AdminBookingsPage() {
   const [bookings, setBookings] = useState([]);
+  const [resourceNameMap, setResourceNameMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [deletingBookingId, setDeletingBookingId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
   const [selectedBooking, setSelectedBooking] = useState(null);
 
@@ -29,9 +75,16 @@ function AdminBookingsPage() {
       setErrorMessage("");
 
       try {
-        const data = await getAllBookings();
+        const [bookingData, resourceData] = await Promise.all([
+          getAllBookings(),
+          getAvailableResources().catch(() => []),
+        ]);
+        const namesById = buildResourceNameMap(resourceData);
+
         if (isMounted) {
-          setBookings(Array.isArray(data) ? data : []);
+          const normalizedBookings = Array.isArray(bookingData) ? bookingData : [];
+          setResourceNameMap(namesById);
+          setBookings(normalizedBookings.map((booking) => withResourceNames(booking, namesById)));
         }
       } catch (error) {
         if (isMounted) {
@@ -85,7 +138,9 @@ function AdminBookingsPage() {
     try {
       const updatedBooking = await updateBookingStatus(booking.bookingId, "APPROVED");
       setBookings((prev) => prev.map((item) => (
-        item.bookingId === updatedBooking.bookingId ? updatedBooking : item
+        item.bookingId === updatedBooking.bookingId
+          ? withResourceNames(updatedBooking, resourceNameMap)
+          : item
       )));
       closeModal();
     } catch (error) {
@@ -106,7 +161,9 @@ function AdminBookingsPage() {
     try {
       const updatedBooking = await updateBookingStatus(booking.bookingId, "REJECTED", rejectionReason);
       setBookings((prev) => prev.map((item) => (
-        item.bookingId === updatedBooking.bookingId ? updatedBooking : item
+        item.bookingId === updatedBooking.bookingId
+          ? withResourceNames(updatedBooking, resourceNameMap)
+          : item
       )));
       closeModal();
     } catch (error) {
@@ -117,6 +174,27 @@ function AdminBookingsPage() {
       setErrorMessage(backendMessage);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleDelete = async (booking) => {
+    setErrorMessage("");
+    setDeletingBookingId(booking.bookingId);
+
+    try {
+      await deleteBooking(booking.bookingId);
+      setBookings((prev) => prev.filter((item) => item.bookingId !== booking.bookingId));
+      if (selectedBooking?.bookingId === booking.bookingId) {
+        closeModal();
+      }
+    } catch (error) {
+      const backendMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Unable to delete this booking. Please try again.";
+      setErrorMessage(backendMessage);
+    } finally {
+      setDeletingBookingId(null);
     }
   };
 
@@ -164,7 +242,12 @@ function AdminBookingsPage() {
             <p className="text-sm font-medium text-slate-600">Loading booking requests...</p>
           </div>
         ) : (
-          <BookingTable bookings={filteredBookings} onReviewClick={handleReviewClick} />
+          <BookingTable
+            bookings={filteredBookings}
+            onReviewClick={handleReviewClick}
+            onDeleteClick={handleDelete}
+            deletingBookingId={deletingBookingId}
+          />
         )}
       
 

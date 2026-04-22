@@ -1,14 +1,62 @@
 import { useEffect, useMemo, useState } from 'react';
-import { deleteBooking, getMyBookings } from '../api/bookingApi';
+import { cancelBooking, deleteBooking, getAvailableResources, getMyBookings } from '../api/bookingApi';
 import BookingCard from '../components/BookingCard';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
+function buildResourceLookupMap(resources) {
+  const map = {};
+
+  if (!Array.isArray(resources)) {
+    return map;
+  }
+
+  resources.forEach((resource) => {
+    const rawId = resource?.id;
+    if (rawId === undefined || rawId === null || rawId === '') {
+      return;
+    }
+
+    const key = String(rawId);
+    map[key] = {
+      name: resource?.name || `Resource #${rawId}`,
+      location: resource?.location || '--',
+    };
+  });
+
+  return map;
+}
+
+function withResourceDetails(booking, resourceLookupMap) {
+  const bookingResourceIds = Array.isArray(booking?.resourceIds) ? booking.resourceIds : [];
+  const fallbackNames = bookingResourceIds
+    .map((resourceId) => resourceLookupMap[String(resourceId)]?.name)
+    .filter(Boolean);
+  const fallbackLocations = bookingResourceIds
+    .map((resourceId) => resourceLookupMap[String(resourceId)]?.location)
+    .filter(Boolean);
+
+  const resourceNames = Array.isArray(booking?.resourceNames) && booking.resourceNames.length > 0
+    ? booking.resourceNames
+    : fallbackNames;
+  const resourceLocations = Array.isArray(booking?.resourceLocations) && booking.resourceLocations.length > 0
+    ? booking.resourceLocations
+    : fallbackLocations;
+
+  return {
+    ...booking,
+    resourceNames,
+    resourceLocations,
+  };
+}
+
 function Bookings() {
   const [bookings, setBookings] = useState([]);
+  const [resourceLookupMap, setResourceLookupMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [cancelInProgressId, setCancelInProgressId] = useState(null);
+  const [deleteInProgressId, setDeleteInProgressId] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -18,9 +66,16 @@ function Bookings() {
       setErrorMessage('');
 
       try {
-        const data = await getMyBookings();
+        const [bookingData, resourceData] = await Promise.all([
+          getMyBookings(),
+          getAvailableResources().catch(() => []),
+        ]);
+        const lookupById = buildResourceLookupMap(resourceData);
+
         if (isMounted) {
-          setBookings(Array.isArray(data) ? data : []);
+          const normalizedBookings = Array.isArray(bookingData) ? bookingData : [];
+          setResourceLookupMap(lookupById);
+          setBookings(normalizedBookings.map((booking) => withResourceDetails(booking, lookupById)));
         }
       } catch (error) {
         if (isMounted) {
@@ -59,8 +114,12 @@ function Bookings() {
     setCancelInProgressId(bookingId);
 
     try {
-      await deleteBooking(bookingId);
-      setBookings((prev) => prev.filter((booking) => booking.bookingId !== bookingId));
+      const updatedBooking = await cancelBooking(bookingId);
+      setBookings((prev) => prev.map((booking) => (
+        booking.bookingId === updatedBooking.bookingId
+          ? withResourceDetails(updatedBooking, resourceLookupMap)
+          : booking
+      )));
     } catch (error) {
       const backendMessage =
         error?.response?.data?.message ||
@@ -69,6 +128,24 @@ function Bookings() {
       setErrorMessage(backendMessage);
     } finally {
       setCancelInProgressId(null);
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId) => {
+    setErrorMessage('');
+    setDeleteInProgressId(bookingId);
+
+    try {
+      await deleteBooking(bookingId);
+      setBookings((prev) => prev.filter((booking) => booking.bookingId !== bookingId));
+    } catch (error) {
+      const backendMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        'Unable to delete this booking right now. Please try again.';
+      setErrorMessage(backendMessage);
+    } finally {
+      setDeleteInProgressId(null);
     }
   };
 
@@ -111,6 +188,8 @@ function Bookings() {
                 booking={booking}
                 onCancel={handleCancelBooking}
                 isCancelling={cancelInProgressId === booking.bookingId}
+                onDelete={handleDeleteBooking}
+                isDeleting={deleteInProgressId === booking.bookingId}
               />
             ))}
           </section>
