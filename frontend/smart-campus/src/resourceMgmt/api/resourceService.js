@@ -11,14 +11,19 @@ resourceApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Make sure it has "Bearer " prefix
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('Token added to request'); // Debug
+      // If token already contains the Bearer prefix, use it as-is
+      const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      if (!config.headers) config.headers = {};
+      // Set both Authorization and lowercase authorization to be compatible with different backends
+      config.headers.Authorization = authHeader;
+      config.headers['authorization'] = authHeader;
+      console.log('Token added to request:', authHeader); // Debug
     } else {
       console.log('No token found!');
     }
     return config;
   },
+
   (error) => Promise.reject(error)
 );
 

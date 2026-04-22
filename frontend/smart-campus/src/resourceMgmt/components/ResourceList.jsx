@@ -4,7 +4,24 @@ import { getAllResources, searchResources, deleteResource } from "../api/resourc
 import ResourceCard from "./ResourceCard";
 import ResourceSearch from "./ResourceSearch";
 
-function ResourceList({ isAdmin }) {
+// Helper function to check if user is admin
+const isUserAdmin = () => {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user) return false;
+    
+    const userData = JSON.parse(user);
+    const roles = userData?.roles || [];
+    const userRole = Array.isArray(roles) ? roles[0] : roles;
+    
+    return userRole?.toLowerCase() === 'admin' || 
+           userRole?.replace('ROLE_', '').toLowerCase() === 'admin';
+  } catch {
+    return false;
+  }
+};
+
+function ResourceList() {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -14,6 +31,7 @@ function ResourceList({ isAdmin }) {
     status: "",
   });
   const [isSearching, setIsSearching] = useState(false);
+  const isAdmin = isUserAdmin();
 
   useEffect(() => {
     fetchResources();
@@ -23,8 +41,6 @@ function ResourceList({ isAdmin }) {
     setLoading(true);
     try {
       const response = await getAllResources(0, 50);
-      // backend returns a Page object directly (with content array).
-      // tolerate both wrapped { success, data } and raw responses.
       const page = response?.data ?? response;
       if (page?.content && Array.isArray(page.content)) {
         setResources(page.content);
@@ -51,7 +67,6 @@ function ResourceList({ isAdmin }) {
       if (filters.status) activeFilters.status = filters.status;
 
       const response = await searchResources(activeFilters);
-      // Accept backend's raw list or wrapped response
       const data = response?.data ?? response;
       if (Array.isArray(data)) {
         setResources(data);
@@ -131,7 +146,7 @@ function ResourceList({ isAdmin }) {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {resources.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} isAdmin={isAdmin} onDelete={handleDelete} />
+            <ResourceCard key={resource.id} resource={resource} onDelete={handleDelete} />
           ))}
         </div>
       )}

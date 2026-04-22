@@ -36,7 +36,20 @@ function ResourceForm() {
       // backend returns DTO directly or wrapped { success, data }
       const data = response?.data ?? response;
       if (data) {
-        setFormData(data);
+        // Merge backend data with defaults so controlled inputs don't become uncontrolled
+        setFormData((prev) => ({
+          ...prev,
+          ...data,
+          capacity: data.capacity ?? prev.capacity ?? "",
+          floor: data.floor ?? prev.floor ?? "",
+          description: data.description ?? prev.description ?? "",
+          amenities: data.amenities ?? prev.amenities ?? "",
+          imageUrl: data.imageUrl ?? prev.imageUrl ?? "",
+          availableFrom: data.availableFrom ?? prev.availableFrom,
+          availableTo: data.availableTo ?? prev.availableTo,
+          type: data.type ?? prev.type,
+          status: data.status ?? prev.status,
+        }));
       } else {
         setError("Failed to load resource");
       }
@@ -111,7 +124,7 @@ function ResourceForm() {
               <input
                 type="text"
                 name="name"
-                value={formData.name}
+                value={formData.name ?? ""}
                 onChange={handleChange}
                 required
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -123,7 +136,7 @@ function ResourceForm() {
               <label className="mb-1 block text-sm font-semibold text-slate-700">Resource Type *</label>
               <select
                 name="type"
-                value={formData.type}
+                value={formData.type ?? ""}
                 onChange={handleChange}
                 required
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -140,7 +153,7 @@ function ResourceForm() {
               <input
                 type="number"
                 name="capacity"
-                value={formData.capacity}
+                value={formData.capacity ?? ""}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Number of people"
@@ -152,7 +165,7 @@ function ResourceForm() {
               <input
                 type="text"
                 name="location"
-                value={formData.location}
+                value={formData.location ?? ""}
                 onChange={handleChange}
                 required
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -165,7 +178,7 @@ function ResourceForm() {
               <input
                 type="text"
                 name="building"
-                value={formData.building}
+                value={formData.building ?? ""}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Building name"
@@ -177,7 +190,7 @@ function ResourceForm() {
               <input
                 type="number"
                 name="floor"
-                value={formData.floor}
+                value={formData.floor ?? ""}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Floor number"
@@ -189,7 +202,7 @@ function ResourceForm() {
               <input
                 type="time"
                 name="availableFrom"
-                value={formData.availableFrom}
+                value={formData.availableFrom ?? ""}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               />
@@ -200,7 +213,7 @@ function ResourceForm() {
               <input
                 type="time"
                 name="availableTo"
-                value={formData.availableTo}
+                value={formData.availableTo ?? ""}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               />
@@ -210,7 +223,7 @@ function ResourceForm() {
               <label className="mb-1 block text-sm font-semibold text-slate-700">Status</label>
               <select
                 name="status"
-                value={formData.status}
+                value={formData.status ?? ""}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               >
@@ -224,7 +237,7 @@ function ResourceForm() {
               <label className="mb-1 block text-sm font-semibold text-slate-700">Description</label>
               <textarea
                 name="description"
-                value={formData.description || ""}
+                value={formData.description ?? ""}
                 onChange={handleChange}
                 rows={3}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -236,7 +249,7 @@ function ResourceForm() {
               <label className="mb-1 block text-sm font-semibold text-slate-700">Amenities</label>
               <textarea
                 name="amenities"
-                value={formData.amenities || ""}
+                value={formData.amenities ?? ""}
                 onChange={handleChange}
                 rows={2}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -249,7 +262,7 @@ function ResourceForm() {
               <input
                 type="url"
                 name="imageUrl"
-                value={formData.imageUrl || ""}
+                value={formData.imageUrl ?? ""}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="https://example.com/image.jpg"

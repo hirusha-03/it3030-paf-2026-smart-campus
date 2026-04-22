@@ -1,6 +1,26 @@
 import { Link } from "react-router-dom";
 
-function ResourceCard({ resource, isAdmin, onDelete }) {
+// Helper function to check if user is admin
+const isUserAdmin = () => {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user) return false;
+    
+    const userData = JSON.parse(user);
+    const roles = userData?.roles || [];
+    const userRole = Array.isArray(roles) ? roles[0] : roles;
+    
+    // Check if role is Admin (case insensitive)
+    return userRole?.toLowerCase() === 'admin' || 
+           userRole?.replace('ROLE_', '').toLowerCase() === 'admin';
+  } catch {
+    return false;
+  }
+};
+
+function ResourceCard({ resource, onDelete }) {
+  const isAdmin = isUserAdmin();
+
   const typeIcons = {
     LECTURE_HALL: "🏛️",
     LAB: "🔬",

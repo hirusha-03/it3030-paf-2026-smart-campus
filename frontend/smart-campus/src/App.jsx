@@ -19,8 +19,6 @@ import ResourceDetailsPage from './resourceMgmt/pages/ResourceDetailsPage';
 import ResourceCreatePage from './resourceMgmt/pages/ResourceCreatePage';
 import ResourceEditPage from './resourceMgmt/pages/ResourceEditPage';
 
-
-
 function App() {
   return (
     <Router>
