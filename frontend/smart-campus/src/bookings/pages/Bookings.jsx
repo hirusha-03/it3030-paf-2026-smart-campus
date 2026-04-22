@@ -104,7 +104,7 @@ function Bookings() {
       [...bookings].sort((a, b) => {
         const dateA = new Date(`${a.date}T${a.startTime || '00:00:00'}`).getTime();
         const dateB = new Date(`${b.date}T${b.startTime || '00:00:00'}`).getTime();
-        return dateB - dateA;
+        return dateA - dateB;
       }),
     [bookings],
   );
