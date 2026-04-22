@@ -261,6 +261,16 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
         AttachmentDto dto = new AttachmentDto();
         dto.setId(att.getId());
         dto.setFilePath(att.getFilePath());
+        if (att.getFilePath() != null) {
+            try {
+                java.nio.file.Path p = java.nio.file.Paths.get(att.getFilePath());
+                dto.setFileName(p.getFileName().toString());
+            } catch (Exception e) {
+                String fp = att.getFilePath();
+                int idx = Math.max(fp.lastIndexOf('/'), fp.lastIndexOf('\\'));
+                dto.setFileName(idx >= 0 ? fp.substring(idx + 1) : fp);
+            }
+        }
         return dto;
     }
 

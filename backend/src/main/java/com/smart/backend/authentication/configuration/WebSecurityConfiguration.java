@@ -57,6 +57,7 @@ public class WebSecurityConfiguration {
                                 "/api/v1/authentication",
                                 "/api/v1/user/register-new-user",
                                 "/oauth2/**").permitAll()
+                               .requestMatchers(HttpMethod.GET, "/api/tickets/*/attachments/*/raw").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

@@ -50,12 +50,7 @@ const Tickets = () => {
     }
   };
 
-  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  // attachments are uploaded after creation using the ticket detail upload control
 
   if (isUserLoading) {
     return <div>Loading user...</div>;
