@@ -189,3 +189,12 @@ export const getBookingsByUser = async (userId) => {
     throw error;
   }
 };
+
+export const deleteTicket = async (ticketId) => {
+  try {
+    await ticketApi.delete(`/${ticketId}`);
+  } catch (error) {
+    console.error('deleteTicket failed:', error);
+    throw error;
+  }
+};

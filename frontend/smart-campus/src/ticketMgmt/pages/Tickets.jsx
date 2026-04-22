@@ -4,7 +4,7 @@ import TicketTable from '../components/TicketTable';
 import TicketFormModal from '../components/TicketFormModal';
 import TicketDetail from '../components/TicketDetail';
 import AssignModal from '../components/AssignModal';
-import { getTickets, createTicket, assignTicket, getCurrentUser } from '../api/ticketService';
+import { getTickets, createTicket, assignTicket, getCurrentUser, deleteTicket } from '../api/ticketService';
 import { normalizeRole, isStaff } from '../utils/roleUtils';
 
 const Tickets = () => {
@@ -110,6 +110,18 @@ const Tickets = () => {
     }
   };
 
+  const handleDeleteTicket = async (ticketId) => {
+    if (!window.confirm('Delete this ticket permanently?')) return;
+    try {
+      await deleteTicket(ticketId);
+      alert('Ticket deleted');
+      fetchTickets();
+    } catch (error) {
+      console.error('Failed to delete ticket:', error);
+      alert('Failed to delete ticket: ' + (error.message || 'Network error'));
+    }
+  };
+
   const handleUpdateStatus = (ticketId) => {
     // For simplicity, just refresh or handle in detail view
     fetchTickets();
@@ -136,6 +148,7 @@ const Tickets = () => {
             onView={handleViewTicket}
             onAssign={handleAssignTicket}
             onUpdateStatus={handleUpdateStatus}
+            onDelete={handleDeleteTicket}
             userRole={userRole}
           />
         </>
