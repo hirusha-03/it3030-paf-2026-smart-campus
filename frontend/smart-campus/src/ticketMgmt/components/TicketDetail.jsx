@@ -263,23 +263,19 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
           <div>
             <h3 className="text-lg font-semibold text-slate-800 mb-3">Attachments</h3>
             <div className="space-y-2">
-              {ticket.attachments.map((attachment) => (
-                <div key={attachment.id}>
-                  <a
-                    href={attachment.filePath}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-indigo-600 hover:text-indigo-900 underline"
-                  >
-                    {attachment.filePath.startsWith('data:image')
-                      ? 'View image'
-                      : attachment.filePath.split('/').pop()}
-                  </a>
-                </div>
-              ))}
+              <div className="flex gap-3 flex-wrap">
+                {ticket.attachments.map((attachment) => (
+                  <div key={attachment.id} className="flex flex-col items-start">
+                    <img src={attachment.filePath} alt="attachment" className="w-48 h-auto rounded border" />
+                    <span className="text-xs text-slate-500 mt-1">{attachment.fileName || attachment.filePath.split('/').pop()}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
+
+        {/* Upload control removed per request (no attachments during create or detail) */}
       </div>
 
       {/* Comments Section */}
