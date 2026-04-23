@@ -31,6 +31,16 @@ export async function createBooking(bookingData) {
   }
 }
 
+export async function updateBooking(bookingId, bookingData) {
+  try {
+    const response = await apiClient.put(`/bookings/${bookingId}`, bookingData || {});
+    return response.data;
+  } catch (error) {
+    console.error("updateBooking failed:", error);
+    throw error;
+  }
+}
+
 export async function getAvailableResources() {
   try {
     const response = await apiClient.get("/resources", {

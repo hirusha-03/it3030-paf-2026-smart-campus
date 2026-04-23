@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cancelBooking, deleteBooking, getAvailableResources, getMyBookings } from '../api/bookingApi';
 import BookingCard from '../components/BookingCard';
 import Navbar from '../../components/Navbar';
@@ -106,6 +106,7 @@ function withResourceDetails(booking, resourceLookupMap) {
 }
 
 function Bookings() {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [resourceLookupMap, setResourceLookupMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -204,6 +205,10 @@ function Bookings() {
     }
   };
 
+  const handleEditBooking = (bookingId) => {
+    navigate(`/bookings?editBookingId=${bookingId}`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
@@ -252,6 +257,7 @@ function Bookings() {
               <BookingCard
                 key={booking.bookingId}
                 booking={booking}
+                onEdit={handleEditBooking}
                 onCancel={handleCancelBooking}
                 isCancelling={cancelInProgressId === booking.bookingId}
                 onDelete={handleDeleteBooking}

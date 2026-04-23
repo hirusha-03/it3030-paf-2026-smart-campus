@@ -41,7 +41,8 @@ function formatDate(dateValue) {
   }).format(date);
 }
 
-function BookingCard({ booking, onCancel, isCancelling, onDelete, isDeleting }) {
+function BookingCard({ booking, onEdit, onCancel, isCancelling, onDelete, isDeleting }) {
+  const canEdit = booking?.status === 'PENDING';
   const canCancel = booking?.status === 'APPROVED';
   const canDelete = booking?.status === 'CANCELLED';
   const showQRCode = booking?.status === 'APPROVED';
@@ -115,6 +116,18 @@ function BookingCard({ booking, onCancel, isCancelling, onDelete, isDeleting }) 
           {booking.status === 'REJECTED' && booking.rejectionReason && (
             <div className="mt-4 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
               <span className="font-semibold">Rejection reason:</span> {booking.rejectionReason}
+            </div>
+          )}
+
+          {canEdit && (
+            <div className="mt-5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onEdit(booking.bookingId)}
+                className="inline-flex items-center rounded-lg border border-indigo-300 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              >
+                Update Booking
+              </button>
             </div>
           )}
 
