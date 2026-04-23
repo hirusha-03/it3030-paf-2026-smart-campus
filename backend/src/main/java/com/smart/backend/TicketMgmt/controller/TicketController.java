@@ -77,7 +77,7 @@ public class TicketController {
         return ResponseEntity.ok(dto);
     }
 
-    @PreAuthorize("hasRole('Admin')")
+    //@PreAuthorize("hasRole('Admin')")
     @PutMapping("/{id}/assign")
     public ResponseEntity<TicketResponseDto> assignTicket(@PathVariable Long id, @RequestBody TicketAssignDto dto) {
         Long adminId = getCurrentUserId();
