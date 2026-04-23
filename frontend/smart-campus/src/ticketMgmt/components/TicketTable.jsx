@@ -1,8 +1,8 @@
 import React from 'react';
-import { Eye, UserCheck, RefreshCw } from 'lucide-react';
+import { Eye, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
 import { isAdmin, isStaff } from '../utils/roleUtils';
 
-const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) => {
+const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, onDelete, userRole }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'OPEN': return 'bg-blue-100 text-blue-800';
@@ -16,15 +16,13 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
 
   const getAttachmentLabel = (filePath) => {
     if (!filePath) return 'Attachment';
-    try {
-      const url = new URL(filePath);
-      return url.pathname.split('/').pop();
-    } catch {
-      if (filePath.startsWith('data:image')) {
-        return 'Image attachment';
-      }
-      return filePath.split('/').pop();
-    }
+    // prefer fileName if provided in DTO (backend sets it)
+    return filePath.split('/').pop();
+  };
+
+  const isRenderableImage = (filePath) => {
+    if (!filePath) return false;
+    return filePath.startsWith('data:') || filePath.startsWith('http') || filePath.startsWith('/');
   };
 
   const getPriorityColor = (priority) => {
@@ -74,17 +72,14 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{ticket.assignedTo?.name || 'Unassigned'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                   {ticket.attachments?.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="flex gap-2 items-center">
                       {ticket.attachments.map((attachment) => (
-                        <div key={attachment.id}>
-                          <a
-                            href={attachment.filePath}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-indigo-600 hover:text-indigo-900 underline"
-                          >
-                            {getAttachmentLabel(attachment.filePath)}
-                          </a>
+                        <div key={attachment.id} className="flex items-center">
+                          {isRenderableImage(attachment.filePath) ? (
+                            <img src={attachment.filePath} alt={attachment.fileName || getAttachmentLabel(attachment.filePath)} className="w-12 h-12 object-cover rounded" />
+                          ) : (
+                            <span className="text-indigo-600">{attachment.fileName || getAttachmentLabel(attachment.filePath)}</span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -104,6 +99,11 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
                   {isStaff(userRole) && (
                     <button onClick={() => onUpdateStatus(ticket.id)} className="text-blue-600 hover:text-blue-900">
                       <RefreshCw size={16} />
+                    </button>
+                  )}
+                  {isAdmin(userRole) && (ticket.status === 'CLOSED' || ticket.status === 'REJECTED') && (
+                    <button onClick={() => onDelete && onDelete(ticket.id)} className="text-red-600 hover:text-red-900">
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </td>

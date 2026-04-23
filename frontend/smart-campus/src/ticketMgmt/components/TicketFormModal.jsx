@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { getAvailableResources, getBookingsByUser } from '../api/ticketService';
 
@@ -19,6 +19,7 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
   const [bookings, setBookings] = useState([]);
   const [resourcesLoading, setResourcesLoading] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -49,18 +50,37 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
       ['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)
     );
     if (allowedFiles.length !== files.length) {
-      alert('Only PNG and JPEG files are allowed.');
+      setErrorMsg('Only PNG and JPEG files are allowed.');
       return;
+    }
+    const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+    for (const f of allowedFiles) {
+      if (f.size > MAX_BYTES) {
+        setErrorMsg(`${f.name} exceeds the 5 MB size limit.`);
+        return;
+      }
     }
     if (allowedFiles.length + formData.attachments.length > 3) {
-      alert('You can attach up to 3 images only.');
+      setErrorMsg('You can attach up to 3 images only.');
       return;
     }
+    setErrorMsg('');
     setFormData((prev) => ({
       ...prev,
       attachments: [...prev.attachments, ...allowedFiles],
     }));
   };
+
+  const fileInputRef = useRef(null);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files || []);
+    const synthetic = { target: { files } };
+    handleFileChange(synthetic);
+  };
+
+  const handleDragOver = (e) => e.preventDefault();
 
   const removeAttachment = (index) => {
     setFormData((prev) => ({
@@ -83,8 +103,8 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white/95 rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-slate-800">Create New Ticket</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -191,18 +211,28 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Attachments <span className="text-slate-400 font-normal">(PNG/JPEG, max 3)</span>
-            </label>
-            <input type="file" accept="image/png,image/jpeg" multiple
-              onChange={handleFileChange} className="w-full text-sm text-slate-600" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Attachments <span className="text-slate-400 font-normal">(PNG/JPEG, max 3)</span></label>
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              className="w-full border-2 border-dashed border-slate-300 rounded-lg p-4 flex items-center justify-center flex-col text-center bg-white hover:bg-slate-50 cursor-pointer"
+            >
+              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" multiple
+                onChange={handleFileChange} className="hidden" />
+              <p className="text-sm text-slate-600">Drag & drop images here, or click to choose files</p>
+              <p className="text-xs text-slate-400 mt-1">Maximum 3 images. PNG or JPEG only.</p>
+            </div>
+            {errorMsg && <p className="text-sm text-red-600 mt-2">{errorMsg}</p>}
             {formData.attachments.length > 0 && (
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 {formData.attachments.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 bg-slate-50">
-                    <span className="text-sm text-slate-700 truncate">{file.name}</span>
-                    <button type="button" onClick={() => removeAttachment(index)}
-                      className="text-sm text-red-600 hover:text-red-800">Remove</button>
+                  <div key={index} className="flex flex-col items-center rounded-lg border border-slate-200 p-2 bg-slate-50">
+                    <img src={URL.createObjectURL(file)} alt={file.name} className="w-20 h-20 object-cover rounded" />
+                    <div className="w-full flex items-center justify-between mt-2">
+                      <span className="text-xs text-slate-700 truncate mr-2">{file.name}</span>
+                      <button type="button" onClick={() => removeAttachment(index)} className="text-xs text-red-600 hover:text-red-800">Remove</button>
+                    </div>
                   </div>
                 ))}
               </div>

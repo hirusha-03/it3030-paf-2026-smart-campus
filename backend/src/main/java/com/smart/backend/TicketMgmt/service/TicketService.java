@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.Base64;
 
 @Service
 public class TicketService {
@@ -43,7 +44,21 @@ public class TicketService {
             if (dto.getAttachmentFilePaths().size() > 3) {
                 throw new IllegalArgumentException("Maximum 3 attachments allowed per ticket");
             }
+            final long maxBytes = 5L * 1024L * 1024L; // 5 MB
             for (String path : dto.getAttachmentFilePaths()) {
+                if (path != null && path.startsWith("data:") && path.contains(",")) {
+                    String base64 = path.substring(path.indexOf(',') + 1);
+                    try {
+                        byte[] decoded = Base64.getDecoder().decode(base64);
+                        if (decoded.length > maxBytes) {
+                            throw new IllegalArgumentException("Attachment exceeds maximum allowed size of 5 MB");
+                        }
+                    } catch (IllegalArgumentException iae) {
+                        throw iae; // rethrow size/decoding issues
+                    } catch (Exception ex) {
+                        throw new IllegalArgumentException("Invalid attachment data");
+                    }
+                }
                 Attachment att = new Attachment();
                 att.setFilePath(path);
                 att.setTicket(ticket);
@@ -167,6 +182,30 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
     ticket.setRejectionReason(dto.getRejectionReason());
     return mapToResponse(ticketRepo.save(ticket));
 }
+    
+    public void deleteTicket(Long ticketId, Long adminId) {
+        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+        if (!hasRole(admin, "Admin")) {
+            throw new IllegalStateException("Only ADMIN users can delete tickets");
+        }
+
+        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+        // Only allow deletion for CLOSED or REJECTED tickets
+        if (ticket.getStatus() != TicketStatus.CLOSED && ticket.getStatus() != TicketStatus.REJECTED) {
+            throw new IllegalStateException("Only CLOSED or REJECTED tickets can be deleted");
+        }
+
+        // Remove related attachments and comments first to satisfy constraints
+        try {
+            attachmentRepo.findByTicket(ticket).forEach(attachmentRepo::delete);
+        } catch (Exception ignored) {}
+        try {
+            commentRepo.findByTicketOrderByIdAsc(ticket).forEach(commentRepo::delete);
+        } catch (Exception ignored) {}
+
+        ticketRepo.delete(ticket);
+    }
     public void addComment(Long ticketId, CommentCreateDto dto, Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
@@ -222,6 +261,16 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
         AttachmentDto dto = new AttachmentDto();
         dto.setId(att.getId());
         dto.setFilePath(att.getFilePath());
+        if (att.getFilePath() != null) {
+            try {
+                java.nio.file.Path p = java.nio.file.Paths.get(att.getFilePath());
+                dto.setFileName(p.getFileName().toString());
+            } catch (Exception e) {
+                String fp = att.getFilePath();
+                int idx = Math.max(fp.lastIndexOf('/'), fp.lastIndexOf('\\'));
+                dto.setFileName(idx >= 0 ? fp.substring(idx + 1) : fp);
+            }
+        }
         return dto;
     }
 

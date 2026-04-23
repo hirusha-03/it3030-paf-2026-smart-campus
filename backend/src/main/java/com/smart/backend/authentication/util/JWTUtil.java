@@ -54,6 +54,9 @@ public class JWTUtil {
 
     public String generateToken(UserDetails userDetails){
         Map<String, Object> claims = new HashMap<>();
+        // Include roles/authorities in the JWT so downstream filters can populate authorities
+        claims.put("roles", userDetails.getAuthorities().stream()
+                .map(a -> a.getAuthority()).toList());
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -62,5 +65,15 @@ public class JWTUtil {
                 .setExpiration((new Date(System.currentTimeMillis() + TOKEN_VALIDITY * 1000)))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
+    }
+
+    @SuppressWarnings("unchecked")
+    public java.util.List<String> getRolesFromToken(String token) {
+        final Claims claims = getAllClaimsFromToken(token);
+        Object roles = claims.get("roles");
+        if (roles instanceof java.util.List) {
+            return (java.util.List<String>) roles;
+        }
+        return java.util.Collections.emptyList();
     }
 }
