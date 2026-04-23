@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.client.web.HttpSessionOAuth2Authoriza
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -68,7 +69,15 @@ public class WebSecurityConfiguration {
                         .requestMatchers(
                                 "/api/v1/authentication",
                                 "/api/v1/user/register-new-user",
-                                "/oauth2/**").permitAll()
+                                "/oauth2/**",
+                                "/api/tickets/*/attachments/*/raw",
+                                "/api/v1/user/check-username",
+                                "/api/v1/user/check-email",
+                                "/api/v1/password/send-otp",
+                                "/api/v1/password/verify-otp",
+                                "/api/v1/password/verify-email/send-otp",
+                                "/api/v1/password/reset"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

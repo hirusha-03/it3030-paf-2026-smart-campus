@@ -77,6 +77,20 @@ export const createTicket = async (ticketData) => {
   }
 };
 
+export const uploadAttachment = async (ticketId, file) => {
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await ticketApi.post(`/${ticketId}/attachments/upload`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('uploadAttachment failed:', error);
+    throw error;
+  }
+};
+
 export const getTickets = async () => {
   try {
     const response = await ticketApi.get('');
@@ -187,6 +201,15 @@ export const getBookingsByUser = async (userId) => {
     return response.data;
   } catch (error) {
     console.error('getBookingsByUser failed:', error);
+    throw error;
+  }
+};
+
+export const deleteTicket = async (ticketId) => {
+  try {
+    await ticketApi.delete(`/${ticketId}`);
+  } catch (error) {
+    console.error('deleteTicket failed:', error);
     throw error;
   }
 };

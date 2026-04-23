@@ -24,8 +24,8 @@ const EditCommentModal = ({ isOpen, onClose, onSubmit, initialMessage }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white/95 rounded-2xl p-6 w-full max-w-lg mx-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-slate-800">Edit Comment</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">

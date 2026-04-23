@@ -5,6 +5,7 @@ import com.smart.backend.TicketMgmt.service.TicketService;
 import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -34,13 +35,46 @@ public class TicketController {
     @GetMapping
     public ResponseEntity<List<TicketResponseDto>> getTickets() {
         Long userId = getCurrentUserId();
-        return ResponseEntity.ok(ticketService.getTicketsForUser(userId));
+        List<TicketResponseDto> tickets = ticketService.getTicketsForUser(userId);
+        // Convert attachment file paths to accessible URLs
+        for (TicketResponseDto t : tickets) {
+            if (t.getAttachments() != null) {
+                for (AttachmentDto a : t.getAttachments()) {
+                    if (a.getId() != null) {
+                        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
+                                .path("/api/tickets/")
+                                .path(String.valueOf(t.getId()))
+                                .path("/attachments/")
+                                .path(String.valueOf(a.getId()))
+                                .path("/raw")
+                                .toUriString();
+                        a.setFilePath(url);
+                    }
+                }
+            }
+        }
+        return ResponseEntity.ok(tickets);
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponseDto> getTicket(@PathVariable Long id) {
-        return ResponseEntity.ok(ticketService.getTicketById(id));
+        TicketResponseDto dto = ticketService.getTicketById(id);
+        if (dto.getAttachments() != null) {
+            for (AttachmentDto a : dto.getAttachments()) {
+                if (a.getId() != null) {
+                    String url = ServletUriComponentsBuilder.fromCurrentContextPath()
+                            .path("/api/tickets/")
+                            .path(String.valueOf(dto.getId()))
+                            .path("/attachments/")
+                            .path(String.valueOf(a.getId()))
+                            .path("/raw")
+                            .toUriString();
+                    a.setFilePath(url);
+                }
+            }
+        }
+        return ResponseEntity.ok(dto);
     }
 
     @PreAuthorize("hasRole('Admin')")
@@ -62,6 +96,14 @@ public class TicketController {
     public ResponseEntity<TicketResponseDto> rejectTicket(@PathVariable Long id, @RequestBody TicketRejectDto dto) {
         Long adminId = getCurrentUserId();
         return ResponseEntity.ok(ticketService.rejectTicket(id, dto, adminId));
+    }
+
+    @PreAuthorize("hasRole('Admin')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+        Long adminId = getCurrentUserId();
+        ticketService.deleteTicket(id, adminId);
+        return ResponseEntity.noContent().build();
     }
 
     private Long getCurrentUserId() {
