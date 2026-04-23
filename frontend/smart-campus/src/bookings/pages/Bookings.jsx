@@ -105,7 +105,7 @@ function withResourceDetails(booking, resourceLookupMap) {
   };
 }
 
-function Bookings() {
+function Bookings({ hideNavbar = false, hideFooter = false }) {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [resourceLookupMap, setResourceLookupMap] = useState({});
@@ -211,7 +211,7 @@ function Bookings() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar />
+      {!hideNavbar && <Navbar />}
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -268,7 +268,7 @@ function Bookings() {
         )}
       </main>
 
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 }

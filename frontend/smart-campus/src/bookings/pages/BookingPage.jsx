@@ -191,7 +191,7 @@ function BookingPage() {
         await createBooking(payload);
         setSuccessMessage("Booking successful!");
       }
-      navigate("/my-bookings");
+      navigate("/dashboard/bookings");
     } catch (error) {
       const backendMessage =
         error?.response?.data?.message ||
