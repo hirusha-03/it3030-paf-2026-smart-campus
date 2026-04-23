@@ -116,7 +116,7 @@ function App() {
 
         {/* Booking routes */}
         <Route path="/bookings" element={<BookingPage />} />
-        <Route path="/my-bookings" element={<MyBookingsPage />} />
+        <Route path="/my-bookings" element={<Navigate to="/dashboard/bookings" replace />} />
         <Route path="/verify/:id" element={<BookingVerificationPage />} />
 
         {/* Fallback */}

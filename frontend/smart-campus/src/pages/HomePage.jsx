@@ -65,7 +65,7 @@ const HomePage = () => {
                 Explore Resources
               </a>
               <Link
-                to="/my-bookings"
+                to="/dashboard/bookings"
                 className="rounded-lg border border-slate-300 bg-white px-7 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
               >
                 View My Bookings
