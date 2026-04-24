@@ -27,6 +27,48 @@ const TYPE_STYLES = {
     label: 'New booking',
     color: 'text-indigo-700',
   },
+  TICKET_ASSIGNED: {
+    dot:   'bg-indigo-500',
+    bg:    'bg-indigo-50 border-indigo-100',
+    label: 'Assigned',
+    color: 'text-indigo-700',
+  },
+  TICKET_STATUS_UPDATED: {
+    dot:   'bg-blue-500',
+    bg:    'bg-blue-50 border-blue-100',
+    label: 'Status updated',
+    color: 'text-blue-700',
+  },
+  TICKET_REJECTED: {
+    dot:   'bg-red-500',
+    bg:    'bg-red-50 border-red-100',
+    label: 'Rejected',
+    color: 'text-red-700',
+  },
+  TICKET_RESOLVED: {
+    dot:   'bg-green-500',
+    bg:    'bg-green-50 border-green-100',
+    label: 'Resolved',
+    color: 'text-green-700',
+  },
+  TICKET_CLOSED: {
+    dot:   'bg-slate-500',
+    bg:    'bg-slate-50 border-slate-100',
+    label: 'Closed',
+    color: 'text-slate-700',
+  },
+  TICKET_COMMENT: {
+    dot:   'bg-purple-500',
+    bg:    'bg-purple-50 border-purple-100',
+    label: 'New comment',
+    color: 'text-purple-700',
+  },
+  TICKET_CREATED: {
+    dot:   'bg-amber-500',
+    bg:    'bg-amber-50 border-amber-100',
+    label: 'New ticket',
+    color: 'text-amber-700',
+  },
 };
 
 function timeAgo(dateStr) {

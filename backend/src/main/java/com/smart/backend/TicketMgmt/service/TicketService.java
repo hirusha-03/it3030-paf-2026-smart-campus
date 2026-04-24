@@ -1,5 +1,6 @@
 package com.smart.backend.TicketMgmt.service;
 
+import com.smart.backend.Notification.service.NotificationService;
 import com.smart.backend.TicketMgmt.dto.*;
 import com.smart.backend.TicketMgmt.enums.TicketStatus;
 import com.smart.backend.TicketMgmt.model.Attachment;
@@ -30,6 +31,9 @@ public class TicketService {
     private CommentRepository commentRepo;
     @Autowired
     private AttachmentRepository attachmentRepo;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public TicketResponseDto createTicket(TicketCreateDto dto, Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
@@ -65,6 +69,21 @@ public class TicketService {
                 attachmentRepo.save(att);
             }
         }
+        // Notify all admins about new ticket
+        String creatorName = buildDisplayName(user);
+        List<Users> admins = authUserRepo.findAllAdmins();
+        final Ticket savedTicket = ticket;
+
+        admins.forEach(admin ->
+                notificationService.createNotification(
+                        admin,
+                        "New Ticket Submitted",
+                        creatorName + " submitted a new ticket: \"" + savedTicket.getTitle() + "\"" +
+                                (savedTicket.getCategory() != null ? " [" + savedTicket.getCategory() + "]" : "") + ".",
+                        "TICKET_CREATED",
+                        savedTicket.getId()
+                )
+        );
         return mapToResponse(ticket);
     }
 
@@ -107,8 +126,31 @@ public class TicketService {
     ticket.setAssignedTo(technician);
     // Automatically move to IN_PROGRESS when assigned
     ticket.setStatus(TicketStatus.IN_PROGRESS);
+    Ticket updated = ticketRepo.save(ticket);
 
-    return mapToResponse(ticketRepo.save(ticket));
+        // Notify ticket creator that ticket is assigned and in progress
+        if (ticket.getCreatedBy() != null) {
+            notificationService.createNotification(
+                    ticket.getCreatedBy(),
+                    "Ticket Assigned",
+                    "Your ticket \"" + ticket.getTitle() + "\" has been assigned to " +
+                            buildDisplayName(technician) + " and is now in progress.",
+                    "TICKET_ASSIGNED",
+                    ticketId
+            );
+        }
+
+        // Notify technician about new assignment
+        notificationService.createNotification(
+                technician,
+                "New Ticket Assigned to You",
+                "You have been assigned ticket: \"" + ticket.getTitle() + "\"" +
+                        (ticket.getPriority() != null ? " (Priority: " + ticket.getPriority() + ")" : "") + ".",
+                "TICKET_ASSIGNED",
+                ticketId
+        );
+
+        return mapToResponse(updated);
 }
 
 public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
@@ -162,7 +204,44 @@ public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long t
     }
 
     ticket.setStatus(next);
-    return mapToResponse(ticketRepo.save(ticket));
+    Ticket updated = ticketRepo.save(ticket);
+
+    // Notify ticket creator about status change
+    if (ticket.getCreatedBy() != null) {
+        String techName = buildDisplayName(tech);
+
+        if (next == TicketStatus.RESOLVED) {
+            notificationService.createNotification(
+                    ticket.getCreatedBy(),
+                    "Ticket Resolved",
+                    "Your ticket \"" + ticket.getTitle() + "\" has been marked as resolved by " +
+                            techName +
+                            (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()
+                                    ? ". Notes: " + dto.getResolutionNotes()
+                                    : "") + ".",
+                    "TICKET_RESOLVED",
+                    ticketId
+            );
+        } else if (next == TicketStatus.CLOSED) {
+            notificationService.createNotification(
+                    ticket.getCreatedBy(),
+                    "Ticket Closed",
+                    "Your ticket \"" + ticket.getTitle() + "\" has been closed.",
+                    "TICKET_CLOSED",
+                    ticketId
+            );
+        } else {
+            notificationService.createNotification(
+                    ticket.getCreatedBy(),
+                    "Ticket Status Updated",
+                    "Your ticket \"" + ticket.getTitle() + "\" status changed to " + next + ".",
+                    "TICKET_STATUS_UPDATED",
+                    ticketId
+            );
+        }
+    }
+
+    return mapToResponse(updated);
 }
 
 public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
@@ -180,7 +259,23 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
 
     ticket.setStatus(TicketStatus.REJECTED);
     ticket.setRejectionReason(dto.getRejectionReason());
-    return mapToResponse(ticketRepo.save(ticket));
+    Ticket updated = ticketRepo.save(ticket);
+
+    // Notify ticket creator about rejection
+    if (ticket.getCreatedBy() != null) {
+        notificationService.createNotification(
+                ticket.getCreatedBy(),
+                "Ticket Rejected",
+                "Your ticket \"" + ticket.getTitle() + "\" has been rejected." +
+                        (dto.getRejectionReason() != null && !dto.getRejectionReason().isBlank()
+                                ? " Reason: " + dto.getRejectionReason()
+                                : ""),
+                "TICKET_REJECTED",
+                ticketId
+        );
+    }
+
+    return mapToResponse(updated);
 }
     
     public void deleteTicket(Long ticketId, Long adminId) {
@@ -211,6 +306,35 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
         Comment comment = new Comment(dto.getMessage(), ticket, user);
         commentRepo.save(comment);
+
+        String commenterName = buildDisplayName(user);
+        String preview = dto.getMessage().length() > 60
+                ? dto.getMessage().substring(0, 60) + "..."
+                : dto.getMessage();
+
+        //  Notify ticket creator if they didn't write the comment
+        Users creator = ticket.getCreatedBy();
+        if (creator != null && creator.getUserId() != userId.intValue()) {
+            notificationService.createNotification(
+                    creator,
+                    "New Comment on Your Ticket",
+                    commenterName + " commented on \"" + ticket.getTitle() + "\": \"" + preview + "\"",
+                    "TICKET_COMMENT",
+                    ticketId
+            );
+        }
+
+        //  Notify assigned technician if they didn't write the comment
+        Users assignedTo = ticket.getAssignedTo();
+        if (assignedTo != null && assignedTo.getUserId() != userId.intValue()) {
+            notificationService.createNotification(
+                    assignedTo,
+                    "New Comment on Assigned Ticket",
+                    commenterName + " commented on \"" + ticket.getTitle() + "\": \"" + preview + "\"",
+                    "TICKET_COMMENT",
+                    ticketId
+            );
+        }
     }
 
     private TicketResponseDto mapToResponse(Ticket ticket) {
