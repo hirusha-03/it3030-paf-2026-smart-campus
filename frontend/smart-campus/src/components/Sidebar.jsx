@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Building2, CalendarRange, Ticket, PieChart, UserCircle, X } from 'lucide-react';
+import { LayoutDashboard, Building2, CalendarRange, Ticket, PieChart, UserCircle, Settings, X } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
@@ -18,10 +18,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const navItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-    { name: 'Facilities', icon: <Building2 size={20} />,      path: '/resources' },
-    { name: 'Bookings',   icon: <CalendarRange size={20} />,  path: '/admin-bookings' },
-    { name: 'Tickets',    icon: <Ticket size={20} />,         path: '/tickets' },
-    { name: 'Analytics',  icon: <PieChart size={20} />,       path: '/analytics', adminOnly: true },
+    { name: 'Facilities', icon: <Building2 size={20} />, path: '/resources' },
+    { name: 'Bookings', icon: <CalendarRange size={20} />, path: '/admin-bookings' },
+    { name: 'Tickets', icon: <Ticket size={20} />, path: '/tickets' },
+    { name: 'Analytics', icon: <PieChart size={20} />, path: '/analytics', adminOnly: true },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -51,7 +51,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       </div>
 
       <nav className="mt-4 px-3 space-y-1 flex-1">
-        {visibleNavItems.map((item) => (   // ✅ use visibleNavItems
+        {visibleNavItems.map((item) => (   // use visibleNavItems
           <Link
             key={item.name}
             to={item.path}
@@ -70,6 +70,23 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       </nav>
 
       <div className="px-3 pb-4 border-t border-slate-800 pt-3">
+        {/* Settings */}
+        <Link
+          to="/settings"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg
+            transition-colors text-sm font-medium
+            ${isActive('/settings')
+              ? 'bg-indigo-500/20 text-indigo-400'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+        >
+          <Settings
+            size={18}
+            className={isActive('/settings') ? 'text-indigo-400' : 'text-slate-500'}
+          />
+          Settings
+        </Link>
+
         <Link
           to="/profile"
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm font-medium

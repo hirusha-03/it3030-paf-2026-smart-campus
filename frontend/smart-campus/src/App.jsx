@@ -19,6 +19,7 @@ import ResourceDetailsPage from './resourceMgmt/pages/ResourceDetailsPage';
 import ResourceCreatePage from './resourceMgmt/pages/ResourceCreatePage';
 import ResourceEditPage from './resourceMgmt/pages/ResourceEditPage';
 import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
           <Route path="/dashboard" element={<Home />} />
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/admin-bookings" element={<AdminBookingsPage />} />
 
           {/* Resource Management (merged from feature branch) */}
