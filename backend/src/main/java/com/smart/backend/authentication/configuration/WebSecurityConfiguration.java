@@ -63,7 +63,6 @@ public class WebSecurityConfiguration {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable()) // disable CSRF (for APIs)
-                .cors(Customizer.withDefaults()) // add by thiyangi
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(

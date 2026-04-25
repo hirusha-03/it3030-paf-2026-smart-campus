@@ -21,4 +21,8 @@ public interface UserRepo extends JpaRepository<Users, Integer> {
 
     @Query("SELECT u FROM Users u JOIN u.role r WHERE r.roleName = :roleName")
     List<Users> findByRoleName(@Param("roleName") String roleName);
+
+    // Find all admin users to notify them
+    @Query("SELECT u FROM Users u JOIN u.role r WHERE r.roleName = 'Admin'")
+    List<Users> findAllAdmins();
 }

@@ -55,7 +55,7 @@ public class UsersController {
         return ResponseEntity.ok(userService.getUserProfile(authentication.getName()));
     }
 
-    @PreAuthorize("hasRole('Admin')")
+    //@PreAuthorize("hasRole('Admin')")
     @GetMapping("/technicians")
     public ResponseEntity<List<UserSummaryDto>> getTechnicians() {
         return ResponseEntity.ok(userService.getUsersByRole("Technician"));
