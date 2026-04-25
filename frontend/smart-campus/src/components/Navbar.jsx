@@ -6,7 +6,6 @@ const navLinks = [
   { label: 'Dashboard', to: '/dashboard', requiresAuth: true },
   { label: 'Resources', to: '/resources', requiresAuth: true },
   { label: 'Booking', to: '/bookings', requiresAuth: true },
-  { label: 'My Bookings', to: '/my-bookings', requiresAuth: true },
 ];
 
 const Navbar = () => {
