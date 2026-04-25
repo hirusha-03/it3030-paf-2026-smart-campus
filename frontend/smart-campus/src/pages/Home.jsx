@@ -2,6 +2,59 @@ import React, { useEffect, useState } from 'react';
 import { Building2, CalendarCheck, AlertCircle, Bell } from 'lucide-react';
 import { getAllBookings, getMyBookings } from '../bookings/api/bookingApi';
 
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  const normalizedToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+  const tokenParts = normalizedToken.split('.');
+  if (tokenParts.length < 2) {
+    return null;
+  }
+
+  try {
+    const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = base64 + '='.repeat((4 - (base64.length % 4 || 4)) % 4);
+    return JSON.parse(atob(normalized));
+  } catch {
+    return null;
+  }
+}
+
+function getStoredRoles() {
+  const rawUser = localStorage.getItem('user');
+  if (rawUser) {
+    try {
+      const parsedUser = JSON.parse(rawUser);
+      if (Array.isArray(parsedUser?.roles)) {
+        return parsedUser.roles;
+      }
+      if (typeof parsedUser?.roles === 'string' && parsedUser.roles.trim()) {
+        return [parsedUser.roles.trim()];
+      }
+    } catch {
+      // Ignore invalid user JSON and continue with token fallback.
+    }
+  }
+
+  const rawToken =
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('JwtToken');
+  const decoded = decodeJwtPayload(rawToken);
+  const tokenRoles = decoded?.roles;
+
+  if (Array.isArray(tokenRoles)) {
+    return tokenRoles;
+  }
+  if (typeof tokenRoles === 'string' && tokenRoles.trim()) {
+    return [tokenRoles.trim()];
+  }
+
+  return [];
+}
+
 const Home = () => {
   const [activeBookingCount, setActiveBookingCount] = useState('00');
 
@@ -10,13 +63,15 @@ const Home = () => {
 
     const loadActiveBookings = async () => {
       try {
-        let bookings = [];
+        const roles = getStoredRoles();
+        const normalizedLowerRoles = Array.isArray(roles)
+          ? roles
+            .map((role) => (typeof role === 'string' ? role.replace('ROLE_', '').trim().toLowerCase() : ''))
+            .filter(Boolean)
+          : [];
+        const isAdmin = normalizedLowerRoles.includes('admin');
 
-        try {
-          bookings = await getAllBookings();
-        } catch {
-          bookings = await getMyBookings();
-        }
+        const bookings = isAdmin ? await getAllBookings() : await getMyBookings();
 
         const bookingList = Array.isArray(bookings) ? bookings : [];
 
