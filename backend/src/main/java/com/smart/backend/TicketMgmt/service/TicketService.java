@@ -13,17 +13,23 @@ import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
+import com.smart.backend.TicketMgmt.event.TicketStatusChangedEvent;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.Base64;
+import java.time.LocalDateTime;
+import java.time.Duration;
 
 @Service
 public class TicketService {
 
     @Autowired
     private TicketRepository ticketRepo;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
     @Autowired
     private UserRepo authUserRepo;
     @Autowired
@@ -74,11 +80,27 @@ public class TicketService {
         if (hasRole(user, "Admin")) {
             tickets = ticketRepo.findAll();
         } else if (hasRole(user, "Technician")) {
-            tickets = ticketRepo.findByAssignedTo(user); 
+            tickets = ticketRepo.findByAssignedTo(user);
         } else {
             tickets = ticketRepo.findByCreatedBy(user);
         }
-        return tickets.stream().map(this::mapToResponse).collect(Collectors.toList());
+
+        if (tickets == null || tickets.isEmpty()) return List.of();
+
+        // Batch fetch comments and attachments for all tickets to avoid N+1 queries
+        List<Long> ticketIds = tickets.stream().map(Ticket::getId).collect(Collectors.toList());
+        List<Comment> comments = commentRepo.findByTicketIdInWithUser(ticketIds);
+        List<Attachment> attachments = attachmentRepo.findByTicketIdIn(ticketIds);
+
+        // Group by ticket id for quick lookup
+        java.util.Map<Long, java.util.List<Comment>> commentsByTicket = comments.stream()
+                .collect(Collectors.groupingBy(c -> c.getTicket().getId()));
+        java.util.Map<Long, java.util.List<Attachment>> attachmentsByTicket = attachments.stream()
+                .collect(Collectors.groupingBy(a -> a.getTicket().getId()));
+
+        return tickets.stream()
+                .map(t -> mapToResponseWithCache(t, commentsByTicket.getOrDefault(t.getId(), java.util.List.of()), attachmentsByTicket.getOrDefault(t.getId(), java.util.List.of())))
+                .collect(Collectors.toList());
     }
 
     public TicketResponseDto getTicketById(Long ticketId) {
@@ -106,9 +128,17 @@ public class TicketService {
 
     ticket.setAssignedTo(technician);
     // Automatically move to IN_PROGRESS when assigned
+    TicketStatus previous = ticket.getStatus();
     ticket.setStatus(TicketStatus.IN_PROGRESS);
+    // Set firstResponseAt on assignment if not already set
+    if (ticket.getFirstResponseAt() == null) {
+        ticket.setFirstResponseAt(LocalDateTime.now());
+    }
 
-    return mapToResponse(ticketRepo.save(ticket));
+    Ticket saved = ticketRepo.save(ticket);
+    // publish status change event
+    eventPublisher.publishEvent(new TicketStatusChangedEvent(saved.getId(), previous, saved.getStatus(), (long) admin.getUserId(), LocalDateTime.now()));
+    return mapToResponse(saved);
 }
 
 public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
@@ -162,7 +192,15 @@ public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long t
     }
 
     ticket.setStatus(next);
-    return mapToResponse(ticketRepo.save(ticket));
+    // Set resolvedAt when ticket is resolved
+    if (next == TicketStatus.RESOLVED && ticket.getResolvedAt() == null) {
+        ticket.setResolvedAt(LocalDateTime.now());
+    }
+
+    Ticket saved = ticketRepo.save(ticket);
+    // publish status change event
+    eventPublisher.publishEvent(new TicketStatusChangedEvent(saved.getId(), current, saved.getStatus(), (long) tech.getUserId(), LocalDateTime.now()));
+    return mapToResponse(saved);
 }
 
 public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
@@ -227,6 +265,15 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
         dto.setRejectionReason(ticket.getRejectionReason());
         dto.setCreatedAt(ticket.getCreatedAt());
         dto.setUpdatedAt(ticket.getUpdatedAt());
+        dto.setFirstResponseAt(ticket.getFirstResponseAt());
+        dto.setResolvedAt(ticket.getResolvedAt());
+        // compute durations (millis) if timestamps available
+        if (ticket.getCreatedAt() != null && ticket.getFirstResponseAt() != null) {
+            dto.setTimeToFirstResponseMillis(Duration.between(ticket.getCreatedAt(), ticket.getFirstResponseAt()).toMillis());
+        }
+        if (ticket.getCreatedAt() != null && ticket.getResolvedAt() != null) {
+            dto.setTimeToResolutionMillis(Duration.between(ticket.getCreatedAt(), ticket.getResolvedAt()).toMillis());
+        }
         if (ticket.getCreatedBy() != null) {
             dto.setCreatedBy(mapUserToSummary(ticket.getCreatedBy()));
         }
@@ -271,6 +318,42 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
                 dto.setFileName(idx >= 0 ? fp.substring(idx + 1) : fp);
             }
         }
+        return dto;
+    }
+
+    // Map using pre-fetched comment and attachment lists to avoid repository calls per-ticket
+    private TicketResponseDto mapToResponseWithCache(Ticket ticket, java.util.List<Comment> comments, java.util.List<Attachment> attachments) {
+        TicketResponseDto dto = new TicketResponseDto();
+        dto.setId(ticket.getId());
+        dto.setTitle(ticket.getTitle());
+        dto.setDescription(ticket.getDescription());
+        dto.setStatus(ticket.getStatus());
+        dto.setPriority(ticket.getPriority());
+        dto.setCategory(ticket.getCategory());
+        dto.setContactMethod(ticket.getContactMethod());
+        dto.setContactDetails(ticket.getContactDetails());
+        dto.setResolutionNotes(ticket.getResolutionNotes());
+        dto.setRejectionReason(ticket.getRejectionReason());
+        dto.setCreatedAt(ticket.getCreatedAt());
+        dto.setUpdatedAt(ticket.getUpdatedAt());
+        dto.setFirstResponseAt(ticket.getFirstResponseAt());
+        dto.setResolvedAt(ticket.getResolvedAt());
+        if (ticket.getCreatedAt() != null && ticket.getFirstResponseAt() != null) {
+            dto.setTimeToFirstResponseMillis(Duration.between(ticket.getCreatedAt(), ticket.getFirstResponseAt()).toMillis());
+        }
+        if (ticket.getCreatedAt() != null && ticket.getResolvedAt() != null) {
+            dto.setTimeToResolutionMillis(Duration.between(ticket.getCreatedAt(), ticket.getResolvedAt()).toMillis());
+        }
+        if (ticket.getCreatedBy() != null) {
+            dto.setCreatedBy(mapUserToSummary(ticket.getCreatedBy()));
+        }
+        if (ticket.getAssignedTo() != null) {
+            dto.setAssignedTo(mapUserToSummary(ticket.getAssignedTo()));
+        }
+        dto.setComments(comments.stream().map(this::mapCommentToResponse).collect(Collectors.toList()));
+        dto.setAttachments(attachments.stream().map(this::mapAttachmentToDto).collect(Collectors.toList()));
+        dto.setRelatedBookingId(ticket.getRelatedBookingId());
+        dto.setRelatedResourceId(ticket.getRelatedResourceId());
         return dto;
     }
 
