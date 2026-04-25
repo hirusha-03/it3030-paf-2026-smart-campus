@@ -10,6 +10,31 @@ const initialFormState = {
 
 const MAX_PURPOSE_LENGTH = 500;
 
+function normalizeTimeForInput(timeValue) {
+  if (!timeValue) {
+    return "";
+  }
+  const raw = String(timeValue);
+  return raw.length >= 5 ? raw.slice(0, 5) : raw;
+}
+
+function buildInitialFormData(initialValues) {
+  if (!initialValues) {
+    return initialFormState;
+  }
+
+  return {
+    date: initialValues.date || "",
+    startTime: normalizeTimeForInput(initialValues.startTime),
+    endTime: normalizeTimeForInput(initialValues.endTime),
+    purpose: initialValues.purpose || "",
+    expectedAttendees:
+      initialValues.expectedAttendees === null || initialValues.expectedAttendees === undefined
+        ? ""
+        : String(initialValues.expectedAttendees),
+  };
+}
+
 function getTodayDateString() {
   const now = new Date();
   const year = now.getFullYear();
@@ -55,8 +80,10 @@ function BookingForm({
   onResourceChange,
   onSubmit,
   isSubmitting,
+  initialValues,
+  submitLabel = "Create Booking",
 }) {
-  const [formData, setFormData] = useState(initialFormState);
+  const [formData, setFormData] = useState(() => buildInitialFormData(initialValues));
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
 
@@ -401,7 +428,7 @@ function BookingForm({
             disabled={isSubmitting}
             className="inline-flex items-center rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Submitting..." : "Create Booking"}
+            {isSubmitting ? "Submitting..." : submitLabel}
           </button>
         </div>
       </form>

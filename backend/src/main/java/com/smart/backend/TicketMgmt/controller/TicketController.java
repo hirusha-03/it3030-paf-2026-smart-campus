@@ -2,8 +2,10 @@ package com.smart.backend.TicketMgmt.controller;
 
 import com.smart.backend.TicketMgmt.dto.*;
 import com.smart.backend.TicketMgmt.service.TicketService;
+import com.smart.backend.TicketMgmt.dto.UserSummaryDto;
 import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.UserRepo;
+import com.smart.backend.authentication.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,9 @@ public class TicketController {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private UserService userService;
+
     @PreAuthorize("isAuthenticated()")
     @PostMapping
     public ResponseEntity<TicketResponseDto> createTicket(@RequestBody TicketCreateDto dto) {
@@ -36,7 +41,7 @@ public class TicketController {
     public ResponseEntity<List<TicketResponseDto>> getTickets() {
         Long userId = getCurrentUserId();
         List<TicketResponseDto> tickets = ticketService.getTicketsForUser(userId);
-        // Convert attachment file paths to accessible URLs
+
         for (TicketResponseDto t : tickets) {
             if (t.getAttachments() != null) {
                 for (AttachmentDto a : t.getAttachments()) {
@@ -60,6 +65,7 @@ public class TicketController {
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponseDto> getTicket(@PathVariable Long id) {
         TicketResponseDto dto = ticketService.getTicketById(id);
+
         if (dto.getAttachments() != null) {
             for (AttachmentDto a : dto.getAttachments()) {
                 if (a.getId() != null) {
@@ -77,28 +83,32 @@ public class TicketController {
         return ResponseEntity.ok(dto);
     }
 
-    //@PreAuthorize("hasRole('Admin')")
+   
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/assign")
     public ResponseEntity<TicketResponseDto> assignTicket(@PathVariable Long id, @RequestBody TicketAssignDto dto) {
         Long adminId = getCurrentUserId();
         return ResponseEntity.ok(ticketService.assignTicket(id, dto, adminId));
     }
 
-    @PreAuthorize("hasAnyRole('Technician','Admin')")
+    
+    @PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
     @PutMapping("/{id}/status")
     public ResponseEntity<TicketResponseDto> updateStatus(@PathVariable Long id, @RequestBody TicketUpdateDto dto) {
         Long techId = getCurrentUserId();
         return ResponseEntity.ok(ticketService.updateStatus(id, dto, techId));
     }
 
-    @PreAuthorize("hasRole('Admin')")
+    
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/reject")
     public ResponseEntity<TicketResponseDto> rejectTicket(@PathVariable Long id, @RequestBody TicketRejectDto dto) {
         Long adminId = getCurrentUserId();
         return ResponseEntity.ok(ticketService.rejectTicket(id, dto, adminId));
     }
 
-    @PreAuthorize("hasRole('Admin')")
+    
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
         Long adminId = getCurrentUserId();
@@ -106,13 +116,20 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/technicians")
+    public ResponseEntity<List<UserSummaryDto>> getTechnicians() {
+        return ResponseEntity.ok(userService.getUsersByRole("Technician"));
+    }
+
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User) {
-            org.springframework.security.core.userdetails.User userDetails =
-                (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+
+        if (authentication != null &&
+            authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User userDetails) {
             return getUserIdFromUsername(userDetails.getUsername());
         }
+
         throw new IllegalStateException("User not authenticated");
     }
 

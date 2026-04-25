@@ -176,7 +176,7 @@ export const deleteComment = async (ticketId, commentId) => {
 
 export const getTechnicians = async () => {
   try {
-    const response = await authApi.get('/technicians');
+    const response = await ticketApi.get('/technicians');
     return response.data;
   } catch (error) {
     console.error('getTechnicians failed:', error);

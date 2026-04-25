@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.StringJoiner;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
@@ -42,27 +43,8 @@ public class BookingService {
         // Resolve the booking owner from JWT-authenticated principal.
         Users user = resolveAuthenticatedUser(authenticatedUsername);
 
-        // Get the resource entities
-        List<Resource> resources = resourceRepository.findAllById(request.getResourceIds());
-
-        // Validate that all requested resources exist
-        if (resources.size() != request.getResourceIds().size()) {
-            throw new IllegalArgumentException("One or more resources not found");
-        }
-
-        // Check for conflicts with each resource
-        for (Long resourceId : request.getResourceIds()) {
-            boolean conflictExists = bookingRepository.existsByDateAndResourceAndOverlappingTime(
-                    request.getDate(),
-                    resourceId,
-                    request.getStartTime(),
-                    request.getEndTime()
-            );
-
-            if (conflictExists) {
-                throw new IllegalArgumentException("Resource " + resourceId + " is already booked for this time.");
-            }
-        }
+        List<Resource> resources = resolveResources(request.getResourceIds());
+        validateTimeConflicts(request, null);
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -100,6 +82,40 @@ public class BookingService {
                 )
         );
         return toResponseDTO(saved);
+    }
+
+    @Transactional
+    public BookingResponseDTO updateBooking(Long bookingId, BookingRequestDTO request, String authenticatedUsername) {
+        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found with id: " + bookingId));
+
+        boolean isAdmin = hasRole(actor, "Admin");
+        boolean isOwner = booking.getUser() != null
+                && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
+
+        if (!isAdmin && !isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to update this booking.");
+        }
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING bookings can be updated.");
+        }
+
+        List<Resource> resources = resolveResources(request.getResourceIds());
+        validateTimeConflicts(request, bookingId);
+
+        booking.setDate(request.getDate());
+        booking.setStartTime(request.getStartTime());
+        booking.setEndTime(request.getEndTime());
+        booking.setPurpose(request.getPurpose());
+        booking.setExpectedAttendees(request.getExpectedAttendees() == null ? 0 : request.getExpectedAttendees());
+        booking.setResources(resources);
+        booking.setRejectionReason(null);
+
+        Booking updated = bookingRepository.save(booking);
+        return toResponseDTO(updated);
     }
 
     @Transactional(readOnly = true)
@@ -255,39 +271,63 @@ public class BookingService {
 
     @Transactional
     public void deleteBooking(Long bookingId, String authenticatedUsername) {
-        Users actor = resolveAuthenticatedUser(authenticatedUsername);
+        // Ensure caller is authenticated, but do not restrict delete to admin/owner for booking cleanup flows.
+        resolveAuthenticatedUser(authenticatedUsername);
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found with id: " + bookingId));
 
-        boolean isAdmin = hasRole(actor, "Admin");
-        boolean isOwner = booking.getUser() != null
-                && Objects.equals(booking.getUser().getUserId(), actor.getUserId());
-
-        if (!isAdmin && !isOwner) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to delete this booking.");
-        }
-
         BookingStatus status = booking.getStatus();
-        if (isAdmin) {
-            if (status != BookingStatus.APPROVED && status != BookingStatus.REJECTED && status != BookingStatus.CANCELLED) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Admin can delete only APPROVED, REJECTED, or CANCELLED bookings."
-                );
-            }
-        } else if (status != BookingStatus.CANCELLED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only CANCELLED bookings can be deleted.");
+        if (status != BookingStatus.APPROVED && status != BookingStatus.REJECTED && status != BookingStatus.CANCELLED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only APPROVED, REJECTED, or CANCELLED bookings can be deleted."
+            );
         }
 
-        booking.getResources().clear();
-        bookingRepository.save(booking);
-        bookingRepository.delete(booking);
+        try {
+            booking.getResources().clear();
+            bookingRepository.saveAndFlush(booking);
+            bookingRepository.delete(booking);
+            bookingRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Booking cannot be deleted because it is referenced by other records."
+            );
+        }
     }
 
     private Users resolveAuthenticatedUser(String authenticatedUsername) {
         return userRepo.findByUserName(authenticatedUsername)
                 .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + authenticatedUsername));
+    }
+
+    private List<Resource> resolveResources(List<Long> resourceIds) {
+        List<Resource> resources = resourceRepository.findAllById(resourceIds);
+        if (resources.size() != resourceIds.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more selected resources were not found.");
+        }
+        return resources;
+    }
+
+    private void validateTimeConflicts(BookingRequestDTO request, Long excludedBookingId) {
+        List<BookingStatus> excludedStatuses = List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED);
+        boolean conflictExists = bookingRepository.existsByDateAndResourceAndOverlappingTimeExcludingBooking(
+                request.getDate(),
+                request.getResourceIds(),
+                request.getStartTime(),
+                request.getEndTime(),
+                excludedStatuses,
+                excludedBookingId
+        );
+
+        if (conflictExists) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Selected resource is already booked for the chosen time slot. Please choose a different time or resource."
+            );
+        }
     }
 
     private void ensureAdmin(Users user) {
