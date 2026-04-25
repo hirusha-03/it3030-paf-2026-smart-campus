@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     List<Attachment> findByTicket(Ticket ticket);
+    List<Attachment> findByTicketIdIn(List<Long> ticketIds);
 }

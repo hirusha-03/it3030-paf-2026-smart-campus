@@ -8,7 +8,8 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('JwtToken');
+    // Support tokens stored under multiple keys for backward compatibility
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('JwtToken');
 
     if (token) {
       config.headers = config.headers || {};
@@ -26,6 +27,16 @@ export async function createBooking(bookingData) {
     return response.data;
   } catch (error) {
     console.error("createBooking failed:", error);
+    throw error;
+  }
+}
+
+export async function updateBooking(bookingId, bookingData) {
+  try {
+    const response = await apiClient.put(`/bookings/${bookingId}`, bookingData || {});
+    return response.data;
+  } catch (error) {
+    console.error("updateBooking failed:", error);
     throw error;
   }
 }
@@ -87,6 +98,16 @@ export async function getAllBookings() {
   }
 }
 
+export const getBookingById = async (id) => {
+  try {
+    const response = await apiClient.get(`/bookings/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("getBookingById failed:", error);
+    throw error;
+  }
+};
+
 export async function updateBookingStatus(bookingId, status, rejectionReason) {
   try {
     const params = { status };
@@ -105,10 +126,20 @@ export async function updateBookingStatus(bookingId, status, rejectionReason) {
   }
 }
 
+export async function cancelBooking(bookingId) {
+  try {
+    const response = await apiClient.patch(`/bookings/${bookingId}/cancel`);
+    return response.data;
+  } catch (error) {
+    console.error("cancelBooking failed:", error);
+    throw error;
+  }
+}
+
 export async function deleteBooking(bookingId) {
   try {
-    await apiClient.delete(`/bookings/${bookingId}`);
-    return null;
+    const response = await apiClient.delete(`/bookings/${bookingId}`);
+    return response.data;
   } catch (error) {
     console.error("deleteBooking failed:", error);
     throw error;

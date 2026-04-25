@@ -1,15 +1,40 @@
 import React from 'react';
-import { Eye, UserCheck, RefreshCw } from 'lucide-react';
+import { Eye, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
+import { isAdmin, isStaff } from '../utils/roleUtils';
 
-const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) => {
+const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, onDelete, userRole }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'OPEN': return 'bg-blue-100 text-blue-800';
       case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800';
       case 'RESOLVED': return 'bg-green-100 text-green-800';
       case 'CLOSED': return 'bg-gray-100 text-gray-800';
+      case 'REJECTED': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatMillis = (ms) => {
+    if (!ms && ms !== 0) return '-';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  };
+
+  const getAttachmentLabel = (filePath) => {
+    if (!filePath) return 'Attachment';
+    // prefer fileName if provided in DTO (backend sets it)
+    return filePath.split('/').pop();
+  };
+
+  const isRenderableImage = (filePath) => {
+    if (!filePath) return false;
+    return filePath.startsWith('data:') || filePath.startsWith('http') || filePath.startsWith('/');
   };
 
   const getPriorityColor = (priority) => {
@@ -32,10 +57,14 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created By</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assigned To</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Time to First Response</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Time to Resolution</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Attachments</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -44,6 +73,7 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
               <tr key={ticket.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{ticket.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{ticket.title}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{ticket.category || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(ticket.status)}`}>
                     {ticket.status}
@@ -54,18 +84,42 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, userRole }) =>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{ticket.createdBy?.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{ticket.assignedTo?.name || 'Unassigned'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{formatMillis(ticket.timeToFirstResponseMillis)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{formatMillis(ticket.timeToResolutionMillis)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                  {ticket.attachments?.length > 0 ? (
+                    <div className="flex gap-2 items-center">
+                      {ticket.attachments.map((attachment) => (
+                        <div key={attachment.id} className="flex items-center">
+                          {isRenderableImage(attachment.filePath) ? (
+                            <img src={attachment.filePath} alt={attachment.fileName || getAttachmentLabel(attachment.filePath)} className="w-12 h-12 object-cover rounded" />
+                          ) : (
+                            <span className="text-indigo-600">{attachment.fileName || getAttachmentLabel(attachment.filePath)}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-400">No attachments</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <button onClick={() => onView(ticket.id)} className="text-indigo-600 hover:text-indigo-900">
                     <Eye size={16} />
                   </button>
-                  {userRole === 'ADMIN' && !ticket.assignedTo && (
+                  {isAdmin(userRole) && !ticket.assignedTo && (
                     <button onClick={() => onAssign(ticket.id)} className="text-green-600 hover:text-green-900">
                       <UserCheck size={16} />
                     </button>
                   )}
-                  {(userRole === 'ADMIN' || userRole === 'TECHNICIAN') && (
+                  {isStaff(userRole) && (
                     <button onClick={() => onUpdateStatus(ticket.id)} className="text-blue-600 hover:text-blue-900">
                       <RefreshCw size={16} />
+                    </button>
+                  )}
+                  {isAdmin(userRole) && (ticket.status === 'CLOSED' || ticket.status === 'REJECTED') && (
+                    <button onClick={() => onDelete && onDelete(ticket.id)} className="text-red-600 hover:text-red-900">
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </td>

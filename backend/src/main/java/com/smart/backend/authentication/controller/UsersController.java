@@ -1,11 +1,17 @@
 package com.smart.backend.authentication.controller;
 
+import com.smart.backend.TicketMgmt.dto.UserSummaryDto;
 import com.smart.backend.authentication.dto.SignupRequest;
 import com.smart.backend.authentication.dto.UserProfileResponse;
 import com.smart.backend.authentication.entity.Users;
+import com.smart.backend.authentication.repo.UserRepo;
 import com.smart.backend.authentication.service.UserService;
 import com.smart.backend.authentication.util.StandardResponse;
 import jakarta.annotation.PostConstruct;
+
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +25,9 @@ public class UsersController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserRepo userRepo;
 
     @PostConstruct
     public void initRoleAndUser(){
@@ -44,6 +53,24 @@ public class UsersController {
     public ResponseEntity<UserProfileResponse> getCurrentUser(Authentication authentication) {
 
         return ResponseEntity.ok(userService.getUserProfile(authentication.getName()));
+    }
+
+    @PreAuthorize("hasRole('Admin')")
+    @GetMapping("/technicians")
+    public ResponseEntity<List<UserSummaryDto>> getTechnicians() {
+        return ResponseEntity.ok(userService.getUsersByRole("Technician"));
+    }
+
+    @GetMapping("/check-username")
+    public ResponseEntity<?> checkUsername(@RequestParam String username) {
+        boolean available = userRepo.findByUserName(username).isEmpty();
+        return ResponseEntity.ok(Map.of("available", available));
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        boolean available = userRepo.findByEmail(email).isEmpty();
+        return ResponseEntity.ok(Map.of("available", available));
     }
 
 }

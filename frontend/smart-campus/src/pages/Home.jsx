@@ -1,10 +1,50 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Building2, CalendarCheck, AlertCircle, Bell } from 'lucide-react';
+import { getAllBookings, getMyBookings } from '../bookings/api/bookingApi';
 
 const Home = () => {
+  const [activeBookingCount, setActiveBookingCount] = useState('00');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadActiveBookings = async () => {
+      try {
+        let bookings = [];
+
+        try {
+          bookings = await getAllBookings();
+        } catch {
+          bookings = await getMyBookings();
+        }
+
+        const bookingList = Array.isArray(bookings) ? bookings : [];
+
+        const activeCount = bookingList.filter((booking) => {
+          const status = typeof booking?.status === 'string' ? booking.status.toUpperCase() : 'PENDING';
+          return status !== 'CANCELLED' && status !== 'REJECTED';
+        }).length;
+
+        if (isMounted) {
+          setActiveBookingCount(String(activeCount).padStart(2, '0'));
+        }
+      } catch {
+        if (isMounted) {
+          setActiveBookingCount('00');
+        }
+      }
+    };
+
+    loadActiveBookings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const stats = [
     { label: 'Available Facilities', value: '12', icon: <Building2 className="text-blue-600" />, color: 'bg-blue-50' },
-    { label: 'Active Bookings', value: '08', icon: <CalendarCheck className="text-emerald-600" />, color: 'bg-emerald-50' },
+    { label: 'Active Bookings', value: activeBookingCount, icon: <CalendarCheck className="text-emerald-600" />, color: 'bg-emerald-50' },
     { label: 'Pending Tickets', value: '03', icon: <AlertCircle className="text-amber-600" />, color: 'bg-amber-50' },
     { label: 'New Notifications', value: '05', icon: <Bell className="text-indigo-600" />, color: 'bg-indigo-50' },
   ];

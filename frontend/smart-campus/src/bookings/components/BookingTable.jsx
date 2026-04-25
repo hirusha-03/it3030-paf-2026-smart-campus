@@ -56,18 +56,21 @@ function getStatusClasses(status) {
     return "border-rose-200 bg-rose-50 text-rose-700";
   }
 
+  if (normalizedStatus === "CANCELLED") {
+    return "border-slate-300 bg-slate-100 text-slate-700";
+  }
+
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
-function BookingTable({ bookings, onReviewClick }) {
+function BookingTable({ bookings, onReviewClick, onDeleteClick, deletingBookingId }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 text-left">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">ID</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">User</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">User Name</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Resource</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Date</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Time</th>
@@ -79,7 +82,7 @@ function BookingTable({ bookings, onReviewClick }) {
           <tbody className="divide-y divide-slate-100 bg-white">
             {bookings.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                   No bookings found for this filter.
                 </td>
               </tr>
@@ -88,18 +91,22 @@ function BookingTable({ bookings, onReviewClick }) {
                 const normalizedStatus = typeof booking.status === "string"
                   ? booking.status.toUpperCase()
                   : "PENDING";
-                const resourceLabel = Array.isArray(booking.resourceIds) && booking.resourceIds.length > 0
-                  ? booking.resourceIds.join(", ")
+                const canReview = normalizedStatus === "PENDING";
+                const canDelete =
+                  normalizedStatus === "APPROVED" ||
+                  normalizedStatus === "REJECTED" ||
+                  normalizedStatus === "CANCELLED";
+                const resourceLabel = Array.isArray(booking.resourceNames) && booking.resourceNames.length > 0
+                  ? booking.resourceNames.join(", ")
+                  : (typeof booking.resourceName === "string" && booking.resourceName.trim())
+                    ? booking.resourceName
                   : "--";
+                const userDisplayName = booking.userName || "Unknown User";
+                const isDeleting = deletingBookingId === booking.bookingId;
 
                 return (
                   <tr key={booking.bookingId} className="hover:bg-slate-50/60">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">
-                      #{booking.bookingId}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
-                      {booking.userName || `User #${booking.userId ?? "--"}`}
-                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{userDisplayName}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{resourceLabel}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
                       {formatDate(booking.date)}
@@ -116,13 +123,34 @@ function BookingTable({ bookings, onReviewClick }) {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => onReviewClick(booking)}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                      >
-                        Review
-                      </button>
+                      {canReview ? (
+                        <button
+                          type="button"
+                          onClick={() => onReviewClick(booking)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        >
+                          Review
+                        </button>
+                      ) : canDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteClick(booking)}
+                          disabled={isDeleting}
+                          className="inline-flex items-center rounded-lg border border-slate-300 p-2 text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          title="Delete booking"
+                          aria-label="Delete booking"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4h8v2" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Closed</span>
+                      )}
                     </td>
                   </tr>
                 );

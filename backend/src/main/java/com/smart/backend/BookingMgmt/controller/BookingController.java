@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -56,9 +57,19 @@ public class BookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<BookingResponseDTO> updateBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRequestDTO request,
+            Principal principal
+    ) {
+        BookingResponseDTO response = bookingService.updateBooking(id, request, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<BookingResponseDTO>> getBookingsByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
+    public ResponseEntity<List<BookingResponseDTO>> getBookingsByUser(@PathVariable Long userId, Principal principal) {
+        return ResponseEntity.ok(bookingService.getBookingsByUser(userId, principal.getName()));
     }
 
     @GetMapping("/me")
@@ -67,23 +78,35 @@ public class BookingController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
-        return ResponseEntity.ok(bookingService.getAllBookings());
+    public ResponseEntity<List<BookingResponseDTO>> getAllBookings(Principal principal) {
+        return ResponseEntity.ok(bookingService.getAllBookings(principal.getName()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BookingResponseDTO> getBookingById(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(bookingService.getBookingById(id, principal.getName()));
     }
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<BookingResponseDTO> updateBookingStatus(
             @PathVariable Long id,
             @RequestParam BookingStatus status,
-            @RequestParam(required = false) String rejectionReason
+            @RequestParam(required = false) String rejectionReason,
+            Principal principal
     ) {
-        BookingResponseDTO updated = bookingService.updateBookingStatus(id, status, rejectionReason);
+        BookingResponseDTO updated = bookingService.updateBookingStatus(id, status, rejectionReason, principal.getName());
+        return ResponseEntity.ok(updated);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<BookingResponseDTO> cancelBooking(@PathVariable Long id, Principal principal) {
+        BookingResponseDTO updated = bookingService.cancelBooking(id, principal.getName());
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
-        bookingService.deleteBooking(id);
+    public ResponseEntity<Void> deleteBooking(@PathVariable Long id, Principal principal) {
+        bookingService.deleteBooking(id, principal.getName());
         return ResponseEntity.noContent().build();
     }
 }
