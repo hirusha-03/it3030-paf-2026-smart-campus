@@ -1,4 +1,5 @@
-import { Bell, Search, UserCircle, Menu } from 'lucide-react';
+import { Bell, Search, UserCircle, Menu, House } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../authentication/hooks/useAuth';
 
 const Header = ({ setSidebarOpen }) => {
@@ -55,6 +56,15 @@ const Header = ({ setSidebarOpen }) => {
           <Bell size={22} />
           <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-rose-500 border-2 border-white rounded-full"></span>
         </button>
+
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+          aria-label="Go to home page"
+        >
+          <House size={16} />
+          Home
+        </Link>
 
         <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
           <div className="text-right">
