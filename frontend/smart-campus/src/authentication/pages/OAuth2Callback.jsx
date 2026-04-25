@@ -43,6 +43,8 @@ export default function OAuth2Callback() {
       contactNumber,
       roles: [role],
     }));
+
+    window.dispatchEvent(new Event("auth-changed"));
   }
 
   navigate("/profile");

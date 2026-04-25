@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 
 import Home from './pages/Home';
@@ -73,8 +74,28 @@ function getStoredRoles() {
   return [];
 }
 
-function App() {
-  const roles = getStoredRoles();
+function AppRoutes() {
+  const location = useLocation();
+  const [roles, setRoles] = useState(() => getStoredRoles());
+
+  useEffect(() => {
+    setRoles(getStoredRoles());
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const refreshRoles = () => setRoles(getStoredRoles());
+
+    window.addEventListener('storage', refreshRoles);
+    window.addEventListener('focus', refreshRoles);
+    window.addEventListener('auth-changed', refreshRoles);
+
+    return () => {
+      window.removeEventListener('storage', refreshRoles);
+      window.removeEventListener('focus', refreshRoles);
+      window.removeEventListener('auth-changed', refreshRoles);
+    };
+  }, []);
+
   const normalizedRoles = Array.isArray(roles)
     ? roles
       .map((role) => (typeof role === 'string' ? role.replace('ROLE_', '').trim() : ''))
@@ -84,44 +105,50 @@ function App() {
   const isAdmin = normalizedLowerRoles?.includes('admin');
 
   return (
+    <Routes>
+      {/* Public / Auth routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/signin" element={<SignIn />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/oauth2/callback" element={<OAuth2Callback />} />
+
+      {/* Protected / Layout routes */}
+      <Route element={<MainLayout />}>
+        <Route path="/dashboard" element={<Home />} />
+        <Route
+          path="/dashboard/bookings"
+          element={isAdmin ? <AdminBookingsPage /> : <MyBookingsPage hideNavbar hideFooter />}
+        />
+        <Route path="/tickets" element={<Tickets />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/admin-bookings" element={isAdmin ? <AdminBookingsPage /> : <Navigate to="/dashboard/bookings" replace />} />
+
+        {/* Resource Management (merged from feature branch) */}
+        <Route path="/resources" element={<ResourcesPage />} />
+        <Route path="/resources/:id" element={<ResourceDetailsPage />} />
+        <Route path="/resources/create" element={<ResourceCreatePage />} />
+        <Route path="/resources/edit/:id" element={<ResourceEditPage />} />
+
+        {/* Analytics */}
+        <Route path="/analytics" element={<Analytics />} />
+      </Route>
+
+      {/* Booking routes */}
+      <Route path="/bookings" element={<BookingPage />} />
+      <Route path="/my-bookings" element={<Navigate to="/dashboard/bookings" replace />} />
+      <Route path="/verify/:id" element={<BookingVerificationPage />} />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
     <Router>
-      <Routes>
-        {/* Public / Auth routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/oauth2/callback" element={<OAuth2Callback />} />
-
-        {/* Protected / Layout routes */}
-        <Route element={<MainLayout />}>
-          <Route path="/dashboard" element={<Home />} />
-          <Route
-            path="/dashboard/bookings"
-            element={isAdmin ? <AdminBookingsPage /> : <MyBookingsPage hideNavbar hideFooter />}
-          />
-          <Route path="/tickets" element={<Tickets />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin-bookings" element={isAdmin ? <AdminBookingsPage /> : <Navigate to="/dashboard/bookings" replace />} />
-
-          {/* Resource Management (merged from feature branch) */}
-          <Route path="/resources" element={<ResourcesPage />} />
-          <Route path="/resources/:id" element={<ResourceDetailsPage />} />
-          <Route path="/resources/create" element={<ResourceCreatePage />} />
-          <Route path="/resources/edit/:id" element={<ResourceEditPage />} />
-
-          {/* Analytics */}
-          <Route path="/analytics" element={<Analytics />} />
-        </Route>
-
-        {/* Booking routes */}
-        <Route path="/bookings" element={<BookingPage />} />
-        <Route path="/my-bookings" element={<Navigate to="/dashboard/bookings" replace />} />
-        <Route path="/verify/:id" element={<BookingVerificationPage />} />
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+      <AppRoutes />
     </Router>
   );
 }
