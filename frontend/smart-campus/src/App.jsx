@@ -133,6 +133,8 @@ function AppRoutes() {
 
         {/* Analytics */}
         <Route path="/analytics" element={<Analytics />} />
+
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       {/* Booking routes */}
@@ -140,7 +142,7 @@ function AppRoutes() {
       <Route path="/my-bookings" element={<Navigate to="/dashboard/bookings" replace />} />
       <Route path="/verify/:id" element={<BookingVerificationPage />} />
         
-      <Route path="/settings" element={<Settings />} />
+      
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />
