@@ -27,6 +27,8 @@ function ResourceDetails() {
   const [error, setError] = useState("");
   const isAdmin = isUserAdmin();
 
+  const defaultImage = "https://via.placeholder.com/800x400?text=No+Image";
+
   useEffect(() => {
     fetchResource();
   }, [id]);
@@ -118,6 +120,18 @@ function ResourceDetails() {
       </Link>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* Hero Image Section */}
+        <div className="relative h-64 w-full overflow-hidden bg-slate-100 md:h-96">
+          <img
+            src={resource.imageUrl || defaultImage}
+            alt={resource.name}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              e.target.src = defaultImage;
+            }}
+          />
+        </div>
+
         <div className="border-b border-slate-100 p-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
