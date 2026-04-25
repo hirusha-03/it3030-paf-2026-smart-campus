@@ -19,6 +19,7 @@ import ResourceDetailsPage from './resourceMgmt/pages/ResourceDetailsPage';
 import ResourceCreatePage from './resourceMgmt/pages/ResourceCreatePage';
 import ResourceEditPage from './resourceMgmt/pages/ResourceEditPage';
 import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
 function decodeJwtPayload(token) {
   if (!token || typeof token !== 'string') {
@@ -102,6 +103,8 @@ function App() {
           />
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+          
           <Route path="/admin-bookings" element={isAdmin ? <AdminBookingsPage /> : <Navigate to="/dashboard/bookings" replace />} />
 
           {/* Resource Management (merged from feature branch) */}
