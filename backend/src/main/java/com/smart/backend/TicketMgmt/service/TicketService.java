@@ -71,9 +71,9 @@ public class TicketService {
     public List<TicketResponseDto> getTicketsForUser(Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         List<Ticket> tickets;
-        if (hasRole(user, "ADMIN")) {
+        if (hasRole(user, "Admin")) {
             tickets = ticketRepo.findAll();
-        } else if (hasRole(user, "TECHNICIAN")) {
+        } else if (hasRole(user, "Technician")) {
             tickets = ticketRepo.findByAssignedTo(user); 
         } else {
             tickets = ticketRepo.findByCreatedBy(user);
@@ -88,8 +88,8 @@ public class TicketService {
 
     public TicketResponseDto assignTicket(Long ticketId, TicketAssignDto dto, Long adminId) {
     Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
-    if (!hasRole(admin, "ADMIN")) {
-        throw new IllegalStateException("Only ADMIN users can assign tickets");
+    if (!hasRole(admin, "Admin")) {
+        throw new IllegalStateException("Only Admin users can assign tickets");
     }
 
     Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
@@ -101,7 +101,7 @@ public class TicketService {
 
     Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
     if (!hasRole(technician, "Technician")) {
-        throw new IllegalArgumentException("Assigned user must have TECHNICIAN role");
+        throw new IllegalArgumentException("Assigned user must have Technician role");
     }
 
     ticket.setAssignedTo(technician);
@@ -116,7 +116,7 @@ public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long t
     Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
 
     if (!hasRole(tech, "Technician") && !hasRole(tech, "Admin")) {
-        throw new IllegalStateException("Only TECHNICIAN or ADMIN users can update ticket status");
+        throw new IllegalStateException("Only Technician or Admin users can update ticket status");
     }
 
     // Technician can only update their assigned ticket
@@ -168,7 +168,7 @@ public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long t
 public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
     Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
     if (!hasRole(admin, "Admin")) {
-        throw new IllegalStateException("Only ADMIN users can reject tickets");
+        throw new IllegalStateException("Only Admin users can reject tickets");
     }
 
     Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
@@ -186,7 +186,7 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
     public void deleteTicket(Long ticketId, Long adminId) {
         Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
         if (!hasRole(admin, "Admin")) {
-            throw new IllegalStateException("Only ADMIN users can delete tickets");
+            throw new IllegalStateException("Only Admin users can delete tickets");
         }
 
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
