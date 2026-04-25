@@ -6,33 +6,86 @@ import {
   CheckCircle, ChevronRight
 } from 'lucide-react';
 
-// Preference groups config
+// Preference groups config 
 const PREFERENCE_GROUPS = [
   {
     key:   'booking',
     label: 'Booking notifications',
     icon:  <Calendar size={16} className="text-indigo-500" />,
-    color: 'indigo',
     items: [
-      { key: 'bookingCreated',   label: 'New booking request',   desc: 'When a user submits a new booking (admin only)' },
-      { key: 'bookingApproved',  label: 'Booking approved',      desc: 'When your booking gets approved' },
-      { key: 'bookingRejected',  label: 'Booking rejected',      desc: 'When your booking gets rejected' },
-      { key: 'bookingCancelled', label: 'Booking cancelled',     desc: 'When a booking is cancelled' },
+      {
+        key:       'bookingCreated',
+        label:     'New booking request',
+        desc:      'When a user submits a new booking',
+        adminOnly: true,   
+      },
+      {
+        key:       'bookingApproved',
+        label:     'Booking approved',
+        desc:      'When your booking gets approved',
+        adminOnly: false,  
+      },
+      {
+        key:       'bookingRejected',
+        label:     'Booking rejected',
+        desc:      'When your booking gets rejected',
+        adminOnly: false,
+      },
+      {
+        key:       'bookingCancelled',
+        label:     'Booking cancelled',
+        desc:      'When a booking is cancelled',
+        adminOnly: false,
+      },
     ],
   },
   {
     key:   'ticket',
     label: 'Ticket notifications',
     icon:  <Ticket size={16} className="text-purple-500" />,
-    color: 'purple',
     items: [
-      { key: 'ticketCreated',        label: 'New ticket submitted',  desc: 'When a user submits a ticket (admin only)' },
-      { key: 'ticketAssigned',       label: 'Ticket assigned',       desc: 'When your ticket is assigned to a technician' },
-      { key: 'ticketStatusUpdated',  label: 'Status updated',        desc: 'When your ticket status changes' },
-      { key: 'ticketResolved',       label: 'Ticket resolved',       desc: 'When your ticket is marked as resolved' },
-      { key: 'ticketClosed',         label: 'Ticket closed',         desc: 'When your ticket is closed' },
-      { key: 'ticketRejected',       label: 'Ticket rejected',       desc: 'When your ticket is rejected' },
-      { key: 'ticketComment',        label: 'New comment',           desc: 'When someone comments on your ticket' },
+      {
+        key:       'ticketCreated',
+        label:     'New ticket submitted',
+        desc:      'When a user submits a new ticket',
+        adminOnly: true,   
+      },
+      {
+        key:       'ticketAssigned',
+        label:     'Ticket assigned',
+        desc:      'When your ticket is assigned to a technician',
+        adminOnly: false,
+      },
+      {
+        key:       'ticketStatusUpdated',
+        label:     'Status updated',
+        desc:      'When your ticket status changes',
+        adminOnly: false,
+      },
+      {
+        key:       'ticketResolved',
+        label:     'Ticket resolved',
+        desc:      'When your ticket is marked as resolved',
+        adminOnly: false,
+      },
+      {
+        key:       'ticketClosed',
+        label:     'Ticket closed',
+        desc:      'When your ticket is closed',
+        adminOnly: false,
+      },
+      {
+        key:       'ticketRejected',
+        label:     'Ticket rejected',
+        desc:      'When your ticket is rejected',
+        adminOnly: false,
+      },
+      {
+        key:       'ticketComment',
+        label:     'New comment',
+        desc:      'When someone comments on your ticket',
+        adminOnly: false,
+      },
     ],
   },
 ];
@@ -55,9 +108,8 @@ function Toggle({ enabled, onChange }) {
 }
 
 // Main Settings component 
-export function Settings() {
-  const navigate = useNavigate();
-  const token    = localStorage.getItem('token');
+export default function Settings() {
+  const token = localStorage.getItem('token');
 
   const [prefs,   setPrefs]   = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +118,46 @@ export function Settings() {
   const [error,   setError]   = useState('');
 
   const authHeader = { Authorization: `Bearer ${token}` };
+
+  // Get role from localStorage
+  const storedUser = localStorage.getItem('user');
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
+
+  const isAdmin = () => {
+    if (!currentUser?.roles) return false;
+    const roles = Array.isArray(currentUser.roles)
+      ? currentUser.roles
+      : [currentUser.roles];
+    return roles.some(role =>
+      role?.replace('ROLE_', '').toLowerCase() === 'admin'
+    );
+  };
+
+  const admin = isAdmin();
+
+  // Filter items per role — admin sees adminOnly, users see !adminOnly
+  const getVisibleGroups = () => {
+    return PREFERENCE_GROUPS.map(group => ({
+      ...group,
+      items: group.items.filter(item =>
+        admin ? item.adminOnly === true  || item.adminOnly === false
+               : item.adminOnly === false
+        // ↑ admin sees ALL items, user sees only non-adminOnly items
+      ),
+    })).filter(group => group.items.length > 0);
+  };
+
+  // Simpler — admin sees everything, user sees only their items
+  const getFilteredGroups = () => {
+    return PREFERENCE_GROUPS.map(group => ({
+      ...group,
+      items: admin
+        ? group.items.filter(item => item.adminOnly)  
+      : group.items.filter(item => !item.adminOnly),     
+    })).filter(group => group.items.length > 0);
+  };
+
+  const visibleGroups = getFilteredGroups();
 
   useEffect(() => { fetchPreferences(); }, []);
 
@@ -88,7 +180,6 @@ export function Settings() {
     setSaved(false);
   };
 
-  // Toggle all in a group
   const handleToggleGroup = (group) => {
     const allEnabled = group.items.every(item => prefs[item.key]);
     const updates = {};
@@ -148,7 +239,6 @@ export function Settings() {
 
   return (
     <div>
-      {/* Page header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-slate-800">Settings</h1>
         <p className="text-sm text-slate-400 mt-1">
@@ -180,7 +270,7 @@ export function Settings() {
             </div>
           )}
 
-          {/* Notification preferences header */}
+          {/* Header card */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2.5">
@@ -188,9 +278,21 @@ export function Settings() {
                   justify-center">
                   <Bell size={16} className="text-indigo-600" />
                 </div>
-                <h2 className="text-base font-semibold text-slate-800">
-                  Notification preferences
-                </h2>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-800">
+                    Notification preferences
+                  </h2>
+                  {/* Show role context */}
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Showing preferences for{' '}
+                    <span className={`font-medium ${
+                      admin ? 'text-indigo-600' : 'text-slate-600'
+                    }`}>
+                      {admin ? 'Admin' : 'User'}
+                    </span>{' '}
+                    role
+                  </p>
+                </div>
               </div>
               <button
                 onClick={handleReset}
@@ -202,18 +304,14 @@ export function Settings() {
                 Reset to default
               </button>
             </div>
-            <p className="text-sm text-slate-400 ml-10">
-              Choose which notifications you want to receive.
-            </p>
           </div>
 
-          {/* Preference groups */}
-          {PREFERENCE_GROUPS.map((group) => {
+          {/* Preference groups — filtered by role */}
+          {visibleGroups.map((group) => {
             const enabledCount = group.items.filter(
               item => prefs?.[item.key]
             ).length;
-            const allEnabled   = enabledCount === group.items.length;
-            const someEnabled  = enabledCount > 0 && !allEnabled;
+            const allEnabled = enabledCount === group.items.length;
 
             return (
               <div key={group.key}
@@ -236,11 +334,9 @@ export function Settings() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Group toggle */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">
-                      {allEnabled ? 'All on' : someEnabled ? 'Some on' : 'All off'}
+                      {allEnabled ? 'All on' : enabledCount > 0 ? 'Some on' : 'All off'}
                     </span>
                     <Toggle
                       enabled={allEnabled}
@@ -251,17 +347,24 @@ export function Settings() {
 
                 {/* Individual items */}
                 <div className="divide-y divide-slate-50">
-                  {group.items.map((item, idx) => (
+                  {group.items.map((item) => (
                     <div key={item.key}
                       className="flex items-center justify-between px-6 py-4
                         hover:bg-slate-50/50 transition-colors">
                       <div className="flex-1 pr-4">
-                        <p className="text-sm font-medium text-slate-700">
-                          {item.label}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {item.desc}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-slate-700">
+                            {item.label}
+                          </p>
+                          {/* Role badge */}
+                          {item.adminOnly && (
+                            <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600
+                              text-[10px] font-semibold rounded uppercase tracking-wide">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
                       </div>
                       <Toggle
                         enabled={prefs?.[item.key] ?? true}
@@ -307,5 +410,3 @@ export function Settings() {
     </div>
   );
 }
-
-export default Settings;
