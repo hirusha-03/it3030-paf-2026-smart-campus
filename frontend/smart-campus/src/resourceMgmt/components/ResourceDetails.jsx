@@ -73,6 +73,13 @@ function ResourceDetails() {
     }
   };
 
+  const handleBookResource = () => {
+    // added by thiyangi: pass selected resource to booking form for auto-selection.
+    navigate(`/bookings?selectedResourceId=${resource.id}`, {
+      state: { selectedResourceId: resource.id },
+    });
+  };
+
   const typeIcons = {
     LECTURE_HALL: "🏛️",
     LAB: "🔬",
@@ -188,6 +195,16 @@ function ResourceDetails() {
               </div>
             </div>
           )}
+
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleBookResource}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-500"
+            >
+              Book this Resource
+            </button>
+          </div>
         </div>
 
         {isAdmin && (

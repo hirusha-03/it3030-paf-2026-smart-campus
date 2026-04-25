@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { createBooking, getAvailableResources, getBookingById, updateBooking } from "../api/bookingApi";
 import BookingForm from "../components/BookingForm";
 import Navbar from "../../components/Navbar";
@@ -30,8 +30,17 @@ function mapResourceForUi(resource) {
 
 function BookingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const editBookingId = Number(searchParams.get("editBookingId"));
+  const selectedResourceIdFromQuery = Number(searchParams.get("selectedResourceId"));
+  const selectedResourceIdFromState = Number(location?.state?.selectedResourceId);
+  // added by thiyangi: supports resource preselection from Resource Details navigation.
+  const preselectedResourceId = Number.isFinite(selectedResourceIdFromState) && selectedResourceIdFromState > 0
+    ? selectedResourceIdFromState
+    : (Number.isFinite(selectedResourceIdFromQuery) && selectedResourceIdFromQuery > 0
+      ? selectedResourceIdFromQuery
+      : null);
   const isEditMode = Number.isFinite(editBookingId) && editBookingId > 0;
 
   const [resources, setResources] = useState([]);
@@ -103,12 +112,21 @@ function BookingPage() {
               });
             }
           } else {
-            const initialType = mapped[0]?.type || "";
-            const initialResourcesForType = initialType
-              ? mapped.filter((resource) => resource.type === initialType)
-              : [];
-            setSelectedResourceType(initialType);
-            setSelectedResourceId(initialResourcesForType[0]?.id ?? null);
+            const preselectedResource = preselectedResourceId
+              ? mapped.find((resource) => resource.id === preselectedResourceId) || null
+              : null;
+
+            if (preselectedResource) {
+              setSelectedResourceType(preselectedResource.type || "");
+              setSelectedResourceId(preselectedResource.id);
+            } else {
+              const initialType = mapped[0]?.type || "";
+              const initialResourcesForType = initialType
+                ? mapped.filter((resource) => resource.type === initialType)
+                : [];
+              setSelectedResourceType(initialType);
+              setSelectedResourceId(initialResourcesForType[0]?.id ?? null);
+            }
             setInitialFormValues(null);
           }
         } else if (isMounted) {
@@ -151,7 +169,7 @@ function BookingPage() {
     return () => {
       isMounted = false;
     };
-  }, [editBookingId, isEditMode]);
+  }, [editBookingId, isEditMode, preselectedResourceId]);
 
   useEffect(() => {
     if (!selectedResourceType) {
