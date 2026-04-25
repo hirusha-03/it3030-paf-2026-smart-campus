@@ -138,7 +138,7 @@ const Header = ({ setSidebarOpen }) => {
             )}
           </button>
 
-          {/* ✅ Notification panel dropdown */}
+          {/* Notification panel dropdown */}
           {showNotifications && (
             <NotificationPanel
               notifications={notifications}

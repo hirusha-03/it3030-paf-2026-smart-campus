@@ -1,6 +1,7 @@
 package com.smart.backend.Notification.controller;
 
 import com.smart.backend.Notification.dto.NotificationDTO;
+import com.smart.backend.Notification.dto.NotificationPreferenceDTO;
 import com.smart.backend.Notification.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -45,5 +46,24 @@ public class NotificationController {
     public ResponseEntity<?> markAllAsRead(Principal principal) {
         notificationService.markAllAsRead(principal.getName());
         return ResponseEntity.ok(Map.of("message", "All marked as read"));
+    }
+
+    @GetMapping("/preferences")
+    public ResponseEntity<NotificationPreferenceDTO> getPreferences(Principal principal) {
+        return ResponseEntity.ok(notificationService.getPreferences(principal.getName()));
+    }
+
+    @PutMapping("/preferences")
+    public ResponseEntity<NotificationPreferenceDTO> updatePreferences(
+            @RequestBody NotificationPreferenceDTO dto,
+            Principal principal) {
+        return ResponseEntity.ok(
+                notificationService.updatePreferences(principal.getName(), dto)
+        );
+    }
+
+    @PostMapping("/preferences/reset")
+    public ResponseEntity<NotificationPreferenceDTO> resetPreferences(Principal principal) {
+        return ResponseEntity.ok(notificationService.resetPreferences(principal.getName()));
     }
 }
