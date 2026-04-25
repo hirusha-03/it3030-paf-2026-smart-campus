@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 
 const navLinks = [
   { label: 'Home', to: '/', requiresAuth: false },
-  { label: 'Dashboard', to: '/dashboard', requiresAuth: true },
-  { label: 'Resources', to: '/resources', requiresAuth: true },
+  { label: 'Resource', to: '/resources', requiresAuth: true },
   { label: 'Booking', to: '/bookings', requiresAuth: true },
+  { label: 'Dashboard', to: '/dashboard', requiresAuth: true },
 ];
 
 const Navbar = () => {

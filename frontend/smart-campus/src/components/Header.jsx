@@ -1,5 +1,6 @@
+import { Bell, Search, UserCircle, Menu, House } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Search, UserCircle, Menu } from 'lucide-react';
 import { useAuth } from '../authentication/hooks/useAuth';
 import axios from 'axios';
 import NotificationPanel from './NotificationPanel';
@@ -147,6 +148,15 @@ const Header = ({ setSidebarOpen }) => {
             />
           )}
         </div>
+
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+          aria-label="Go to home page"
+        >
+          <House size={16} />
+          Home
+        </Link>
 
         <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
           <div className="text-right">
