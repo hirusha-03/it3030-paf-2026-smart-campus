@@ -12,6 +12,8 @@ const Header = ({ setSidebarOpen }) => {
   const [notifications,     setNotifications]     = useState([]);
   const [unreadCount,       setUnreadCount]       = useState(0);
 
+  const [dismissed, setDismissed] = useState(new Set());
+
   const token = localStorage.getItem('token');
 
   const authHeader = { Authorization: `Bearer ${token}` };
@@ -25,7 +27,9 @@ const Header = ({ setSidebarOpen }) => {
         { headers: authHeader }
       );
       setNotifications(res.data);
-      setUnreadCount(res.data.filter(n => !n.read).length);
+      setUnreadCount(
+        res.data.filter(n => !n.read && !dismissed.has(n.id)).length
+      );
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     }
@@ -38,6 +42,12 @@ const Header = ({ setSidebarOpen }) => {
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
+  useEffect(() => {
+    setUnreadCount(
+      notifications.filter(n => !n.read && !dismissed.has(n.id)).length
+    );
+  }, [dismissed, notifications]);
+
   // Mark single notification as read
   const handleMarkRead = async (id) => {
     try {
@@ -49,7 +59,6 @@ const Header = ({ setSidebarOpen }) => {
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, read: true } : n)
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Failed to mark as read:', err);
     }
@@ -68,6 +77,16 @@ const Header = ({ setSidebarOpen }) => {
     } catch (err) {
       console.error('Failed to mark all as read:', err);
     }
+  };
+
+  // Dismiss handler — lives in Header so state persists
+  const handleDismiss = (id) => {
+    setDismissed(prev => new Set([...prev, id]));
+  };
+
+  // Restore all dismissed
+  const handleRestoreDismissed = () => {
+    setDismissed(new Set());
   };
 
   const getInitials = () => {
@@ -142,9 +161,12 @@ const Header = ({ setSidebarOpen }) => {
           {showNotifications && (
             <NotificationPanel
               notifications={notifications}
+              dismissed={dismissed}               // Pass dismissed set down
               onClose={() => setShowNotifications(false)}
               onMarkRead={handleMarkRead}
               onMarkAllRead={handleMarkAllRead}
+              onDismiss={handleDismiss}            // Pass handler down
+              onRestoreDismissed={handleRestoreDismissed} // Pass restore handler
             />
           )}
         </div>
