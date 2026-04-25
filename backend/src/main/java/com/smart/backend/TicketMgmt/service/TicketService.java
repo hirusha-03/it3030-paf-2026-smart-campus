@@ -13,17 +13,23 @@ import com.smart.backend.authentication.entity.Users;
 import com.smart.backend.authentication.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
+import com.smart.backend.TicketMgmt.event.TicketStatusChangedEvent;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.Base64;
+import java.time.LocalDateTime;
+import java.time.Duration;
 
 @Service
 public class TicketService {
 
     @Autowired
     private TicketRepository ticketRepo;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
     @Autowired
     private UserRepo authUserRepo;
     @Autowired
@@ -106,9 +112,17 @@ public class TicketService {
 
     ticket.setAssignedTo(technician);
     // Automatically move to IN_PROGRESS when assigned
+    TicketStatus previous = ticket.getStatus();
     ticket.setStatus(TicketStatus.IN_PROGRESS);
+    // Set firstResponseAt on assignment if not already set
+    if (ticket.getFirstResponseAt() == null) {
+        ticket.setFirstResponseAt(LocalDateTime.now());
+    }
 
-    return mapToResponse(ticketRepo.save(ticket));
+    Ticket saved = ticketRepo.save(ticket);
+    // publish status change event
+    eventPublisher.publishEvent(new TicketStatusChangedEvent(saved.getId(), previous, saved.getStatus(), (long) admin.getUserId(), LocalDateTime.now()));
+    return mapToResponse(saved);
 }
 
 public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
@@ -162,7 +176,15 @@ public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long t
     }
 
     ticket.setStatus(next);
-    return mapToResponse(ticketRepo.save(ticket));
+    // Set resolvedAt when ticket is resolved
+    if (next == TicketStatus.RESOLVED && ticket.getResolvedAt() == null) {
+        ticket.setResolvedAt(LocalDateTime.now());
+    }
+
+    Ticket saved = ticketRepo.save(ticket);
+    // publish status change event
+    eventPublisher.publishEvent(new TicketStatusChangedEvent(saved.getId(), current, saved.getStatus(), (long) tech.getUserId(), LocalDateTime.now()));
+    return mapToResponse(saved);
 }
 
 public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
@@ -227,6 +249,15 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
         dto.setRejectionReason(ticket.getRejectionReason());
         dto.setCreatedAt(ticket.getCreatedAt());
         dto.setUpdatedAt(ticket.getUpdatedAt());
+        dto.setFirstResponseAt(ticket.getFirstResponseAt());
+        dto.setResolvedAt(ticket.getResolvedAt());
+        // compute durations (millis) if timestamps available
+        if (ticket.getCreatedAt() != null && ticket.getFirstResponseAt() != null) {
+            dto.setTimeToFirstResponseMillis(Duration.between(ticket.getCreatedAt(), ticket.getFirstResponseAt()).toMillis());
+        }
+        if (ticket.getCreatedAt() != null && ticket.getResolvedAt() != null) {
+            dto.setTimeToResolutionMillis(Duration.between(ticket.getCreatedAt(), ticket.getResolvedAt()).toMillis());
+        }
         if (ticket.getCreatedBy() != null) {
             dto.setCreatedBy(mapUserToSummary(ticket.getCreatedBy()));
         }

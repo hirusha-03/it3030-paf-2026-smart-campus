@@ -14,6 +14,18 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, onDelete, user
     }
   };
 
+  const formatMillis = (ms) => {
+    if (!ms && ms !== 0) return '-';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  };
+
   const getAttachmentLabel = (filePath) => {
     if (!filePath) return 'Attachment';
     // prefer fileName if provided in DTO (backend sets it)
@@ -50,6 +62,8 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, onDelete, user
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created By</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assigned To</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Time to First Response</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Time to Resolution</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Attachments</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -70,6 +84,8 @@ const TicketTable = ({ tickets, onView, onAssign, onUpdateStatus, onDelete, user
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{ticket.createdBy?.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{ticket.assignedTo?.name || 'Unassigned'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{formatMillis(ticket.timeToFirstResponseMillis)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{formatMillis(ticket.timeToResolutionMillis)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                   {ticket.attachments?.length > 0 ? (
                     <div className="flex gap-2 items-center">
