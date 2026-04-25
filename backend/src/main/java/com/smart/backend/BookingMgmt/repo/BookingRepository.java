@@ -48,6 +48,26 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         );
     }
 
+    @Query("""
+            SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
+            FROM Booking b
+            JOIN b.resources r
+            WHERE b.date = :date
+              AND r.id IN :resourceIds
+              AND b.startTime < :newEndTime
+              AND b.endTime > :newStartTime
+              AND b.status NOT IN :excludedStatuses
+              AND (:excludedBookingId IS NULL OR b.bookingId <> :excludedBookingId)
+            """)
+    boolean existsByDateAndResourceAndOverlappingTimeExcludingBooking(
+            @Param("date") LocalDate date,
+            @Param("resourceIds") List<Long> resourceIds,
+            @Param("newStartTime") LocalTime newStartTime,
+            @Param("newEndTime") LocalTime newEndTime,
+            @Param("excludedStatuses") List<BookingStatus> excludedStatuses,
+            @Param("excludedBookingId") Long excludedBookingId
+    );
+
     // --- Analytics queries ---
     @Query("SELECT r.id, r.name, COUNT(b) FROM Booking b JOIN b.resources r GROUP BY r.id, r.name ORDER BY COUNT(b) DESC")
     java.util.List<Object[]> findTopResources(org.springframework.data.domain.Pageable pageable);

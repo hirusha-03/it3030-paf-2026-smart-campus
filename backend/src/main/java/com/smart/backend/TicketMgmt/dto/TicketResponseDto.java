@@ -25,6 +25,10 @@ public class TicketResponseDto {
     private List<AttachmentDto> attachments;
     private Long relatedBookingId;
     private Long relatedResourceId;
+    private LocalDateTime firstResponseAt;
+    private LocalDateTime resolvedAt;
+    private Long timeToFirstResponseMillis;
+    private Long timeToResolutionMillis;
 
     // Getters and setters
     public Long getId() { return id; }
@@ -63,4 +67,12 @@ public class TicketResponseDto {
     public void setRelatedBookingId(Long relatedBookingId) { this.relatedBookingId = relatedBookingId; }
     public Long getRelatedResourceId() { return relatedResourceId; }
     public void setRelatedResourceId(Long relatedResourceId) { this.relatedResourceId = relatedResourceId; }
+    public LocalDateTime getFirstResponseAt() { return firstResponseAt; }
+    public void setFirstResponseAt(LocalDateTime firstResponseAt) { this.firstResponseAt = firstResponseAt; }
+    public LocalDateTime getResolvedAt() { return resolvedAt; }
+    public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
+    public Long getTimeToFirstResponseMillis() { return timeToFirstResponseMillis; }
+    public void setTimeToFirstResponseMillis(Long timeToFirstResponseMillis) { this.timeToFirstResponseMillis = timeToFirstResponseMillis; }
+    public Long getTimeToResolutionMillis() { return timeToResolutionMillis; }
+    public void setTimeToResolutionMillis(Long timeToResolutionMillis) { this.timeToResolutionMillis = timeToResolutionMillis; }
 }

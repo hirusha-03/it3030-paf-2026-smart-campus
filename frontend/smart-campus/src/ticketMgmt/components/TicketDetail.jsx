@@ -133,6 +133,27 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
     }
   };
 
+  const formatMillis = (ms) => {
+    if (!ms && ms !== 0) return '-';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  };
+
+  const formatDateTime = (iso) => {
+    if (!iso) return '-';
+    try {
+      return new Date(iso).toLocaleString();
+    } catch (e) {
+      return iso;
+    }
+  };
+
   if (!ticket) return <div>Loading...</div>;
 
   const allowedStatuses = getAllowedStatuses();
@@ -233,6 +254,26 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
           <div>
             <span className="text-sm font-medium text-slate-500">Contact Details:</span>
             <p className="mt-2 text-slate-700">{ticket.contactDetails || 'N/A'}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">First Response At:</span>
+            <p className="mt-2 text-slate-700">{formatDateTime(ticket.firstResponseAt)}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">Time to First Response:</span>
+            <p className="mt-2 text-slate-700">{formatMillis(ticket.timeToFirstResponseMillis)}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">Resolved At:</span>
+            <p className="mt-2 text-slate-700">{formatDateTime(ticket.resolvedAt)}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">Time to Resolution:</span>
+            <p className="mt-2 text-slate-700">{formatMillis(ticket.timeToResolutionMillis)}</p>
           </div>
         </div>
 

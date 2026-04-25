@@ -60,6 +60,9 @@ public class Ticket {
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    // Service-level timers
+    private LocalDateTime firstResponseAt;
+    private LocalDateTime resolvedAt;
 
     // Constructors
     public Ticket() {}
@@ -118,6 +121,12 @@ public class Ticket {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LocalDateTime getFirstResponseAt() { return firstResponseAt; }
+    public void setFirstResponseAt(LocalDateTime firstResponseAt) { this.firstResponseAt = firstResponseAt; }
+
+    public LocalDateTime getResolvedAt() { return resolvedAt; }
+    public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
 
     public Long getRelatedBookingId() { return relatedBookingId; }
     public void setRelatedBookingId(Long relatedBookingId) { this.relatedBookingId = relatedBookingId; }
