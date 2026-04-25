@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { CheckCheck, Bell, X } from 'lucide-react';
 
@@ -80,7 +80,13 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationPanel({
-  notifications, onClose, onMarkRead, onMarkAllRead
+  notifications,
+  dismissed,           // Received from Header
+  onClose,
+  onMarkRead,
+  onMarkAllRead,
+  onDismiss,           // Received from Header
+  onRestoreDismissed,
 }) {
   const panelRef = useRef(null);
 
@@ -95,7 +101,10 @@ export default function NotificationPanel({
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  // Filter out dismissed notifications
+  const visibleNotifications = notifications.filter(n => !dismissed.has(n.id));
+  const unreadCount = visibleNotifications.filter(n => !n.read).length;
 
   return (
     <div
@@ -105,10 +114,13 @@ export default function NotificationPanel({
       style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="flex items-center justify-between px-5 py-4
+        border-b border-slate-100">
         <div className="flex items-center gap-2">
           <Bell size={16} className="text-slate-600" />
-          <span className="font-semibold text-slate-800 text-sm">Notifications</span>
+          <span className="font-semibold text-slate-800 text-sm">
+            Notifications
+          </span>
           {unreadCount > 0 && (
             <span className="px-2 py-0.5 bg-indigo-600 text-white text-xs
               font-medium rounded-full">
@@ -127,10 +139,19 @@ export default function NotificationPanel({
               Mark all read
             </button>
           )}
+          {dismissed.size > 0 && (
+            <button
+              onClick={onRestoreDismissed}
+              className="text-xs text-slate-400 hover:text-slate-600
+                hover:underline transition-colors"
+            >
+              Show {dismissed.size} hidden
+            </button>
+          )}
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100
-              rounded-lg transition-colors"
+            className="p-1 text-slate-400 hover:text-slate-600
+              hover:bg-slate-100 rounded-lg transition-colors"
           >
             <X size={16} />
           </button>
@@ -139,7 +160,7 @@ export default function NotificationPanel({
 
       {/* List */}
       <div className="max-h-96 overflow-y-auto">
-        {notifications.length === 0 ? (
+        {visibleNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-5">
             <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center
               justify-center mb-3">
@@ -147,26 +168,28 @@ export default function NotificationPanel({
             </div>
             <p className="text-sm font-medium text-slate-500">No notifications</p>
             <p className="text-xs text-slate-400 mt-1">
-              You're all caught up!
+              {dismissed.size > 0
+                ? `${dismissed.size} hidden — click "Show hidden" to restore`
+                : "You're all caught up!"
+              }
             </p>
           </div>
         ) : (
-          notifications.map((n) => {
+          visibleNotifications.map((n) => {
             const style = TYPE_STYLES[n.type] || {
               dot: 'bg-slate-400', bg: 'bg-slate-50 border-slate-100',
-              label: n.type, color: 'text-slate-600'
+              label: n.type, color: 'text-slate-600',
             };
 
             return (
               <div
                 key={n.id}
                 onClick={() => !n.read && onMarkRead(n.id)}
-                className={`px-5 py-4 border-b border-slate-50 cursor-pointer
-                  transition-colors hover:bg-slate-50
+                className={`group px-5 py-4 border-b border-slate-50
+                  transition-colors hover:bg-slate-50 cursor-pointer
                   ${!n.read ? 'bg-indigo-50/40' : ''}`}
               >
                 <div className="flex items-start gap-3">
-                  {/* Status dot */}
                   <div className="mt-1.5 flex-shrink-0">
                     <div className={`w-2 h-2 rounded-full ${
                       n.read ? 'bg-slate-300' : style.dot
@@ -178,9 +201,24 @@ export default function NotificationPanel({
                       <span className="text-sm font-semibold text-slate-800 truncate">
                         {n.title}
                       </span>
-                      <span className="text-xs text-slate-400 flex-shrink-0">
-                        {timeAgo(n.createdAt)}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-xs text-slate-400">
+                          {timeAgo(n.createdAt)}
+                        </span>
+                        {/* Dismiss X — calls onDismiss from Header */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDismiss(n.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-0.5
+                            text-slate-300 hover:text-slate-500
+                            hover:bg-slate-200 rounded transition-all"
+                          title="Hide notification"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
                     </div>
 
                     <p className="text-xs text-slate-500 leading-relaxed mb-2">
@@ -200,10 +238,12 @@ export default function NotificationPanel({
       </div>
 
       {/* Footer */}
-      {notifications.length > 0 && (
+      {visibleNotifications.length > 0 && (
         <div className="px-5 py-3 border-t border-slate-100 bg-slate-50">
           <p className="text-xs text-slate-400 text-center">
-            {notifications.length} notification{notifications.length !== 1 ? 's' : ''} total
+            {visibleNotifications.length} notification
+            {visibleNotifications.length !== 1 ? 's' : ''}
+            {dismissed.size > 0 && ` · ${dismissed.size} hidden`}
           </p>
         </div>
       )}
