@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { getTechnicians } from '../api/ticketService';
 
-const AssignModal = ({ isOpen, onClose, onAssign, ticketId }) => {
+import { isAdmin } from '../utils/roleUtils';
+
+const AssignModal = ({ isOpen, onClose, onAssign, ticketId, userRole }) => {
   const [technicians, setTechnicians] = useState([]);
   const [assignedToId, setAssignedToId] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      // Only load technicians for Admin users
+      if (!isAdmin(userRole)) return;
       setLoading(true);
       getTechnicians()
         .then(setTechnicians)

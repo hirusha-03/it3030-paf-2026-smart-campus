@@ -167,6 +167,7 @@ const Tickets = () => {
         onClose={() => setIsAssignModalOpen(false)}
         onAssign={handleAssignSubmit}
         ticketId={selectedTicketId}
+        userRole={userRole}
       />
     </div>
   );
