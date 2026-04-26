@@ -230,10 +230,11 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                   <button
                     onClick={handleUpdateStatus}
                     disabled={status === ticket.status}
-                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Update status"
                   >
                     <RefreshCw size={18} />
+                    Update Status
                   </button>
                 </>
               ) : (
@@ -243,6 +244,9 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                 </span>
               )}
             </div>
+            {canUpdateStatus && (
+              <p className="mt-2 text-xs text-slate-500">Select a status and click Update Status to save.</p>
+            )}
           </div>
 
           <div>
