@@ -67,9 +67,20 @@ public class JWTRequestFilter extends OncePerRequestFilter {
             UserDetails userDetails = jwtService.loadUserByUsername(username);
 
             if (jwtUtil.validateToken(jwtToken, userDetails)) {
+                // Prefer authorities from token (if present) so tokens issued by auth server carry roles without DB lookup
+                java.util.List<String> rolesFromToken = jwtUtil.getRolesFromToken(jwtToken);
+                java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> authorities;
+                if (rolesFromToken != null && !rolesFromToken.isEmpty()) {
+                    authorities = rolesFromToken.stream()
+                            .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority(r.startsWith("ROLE_") ? r.toUpperCase() : "ROLE_" + r.toUpperCase()))
+                            .toList();
+                } else {
+                    authorities = userDetails.getAuthorities();
+                }
+
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities()
+                                userDetails, null, authorities
                         );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);

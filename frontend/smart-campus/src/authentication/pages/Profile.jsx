@@ -10,51 +10,41 @@ import ResetPassword from '../pages/ResetPassword';
 export default function Profile() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showResetPassword, setShowResetPassword] = useState(false);
 
-  useEffect(() => {
+   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    // No token — redirect to signin immediately
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
-
-    // Debug — remove after fixing
-    console.log("Token found:", token);
-
-    fetchUserProfile(token);
+    if (!token) { navigate("/signin"); return; }
+    fetchAll(token);
   }, []);
 
-  const fetchUserProfile = async (token) => {
+  const fetchAll = async (token) => {
     try {
-      console.log("Calling /api/v1/user/me with token:", token);
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      };
 
-      const res = await axios.get("http://localhost:8080/api/v1/user/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
+      // Fetch profile and stats in parallel
+      const [profileRes, statsRes] = await Promise.all([
+        axios.get("http://localhost:8080/api/v1/user/me",    { headers }),
+        axios.get("http://localhost:8080/api/v1/user/me/stats", { headers }),
+      ]);
 
-      console.log("Profile response:", res.data);
-      setUser(res.data);
-      localStorage.setItem("user", JSON.stringify(res.data));
+      setUser(profileRes.data);
+      setStats(statsRes.data);
+      localStorage.setItem("user", JSON.stringify(profileRes.data));
 
     } catch (err) {
-      console.error("Profile fetch error:", err.response?.status, err.response?.data);
-
-      // Token expired or invalid — redirect to signin
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/signin");
         return;
       }
-
       setError("Failed to load profile. Please try again.");
     } finally {
       setLoading(false);
@@ -94,6 +84,11 @@ export default function Profile() {
     if (!user?.roles) return 'User';
     const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
     return roles[0]?.replace('ROLE_', '') || 'User';
+  };
+
+  const isAdmin = () => {
+    const role = getRole().toLowerCase();
+    return role === 'admin';
   };
   const isGoogleUser = () => user?.provider === "Google";
 
@@ -150,22 +145,29 @@ export default function Profile() {
 
           <div className="w-full h-px bg-slate-100 mb-5"></div>
 
-          <div className="grid grid-cols-2 gap-3 w-full mb-5">
-            <div className="bg-slate-50 rounded-xl p-3 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <CalendarRange size={14} className="text-indigo-400" />
-                <span className="text-xs text-slate-400">Bookings</span>
+           {/* Stats — only for non-admin users */}
+          {!isAdmin() && (
+            <div className="grid grid-cols-2 gap-3 w-full mb-5">
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <CalendarRange size={14} className="text-indigo-400" />
+                  <span className="text-xs text-slate-400">Bookings</span>
+                </div>
+                <div className="text-lg font-semibold text-slate-800">
+                  {stats?.bookings ?? '—'}
+                </div>
               </div>
-              <div className="text-lg font-semibold text-slate-800">—</div>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-3 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Ticket size={14} className="text-indigo-400" />
-                <span className="text-xs text-slate-400">Tickets</span>
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Ticket size={14} className="text-indigo-400" />
+                  <span className="text-xs text-slate-400">Tickets</span>
+                </div>
+                <div className="text-lg font-semibold text-slate-800">
+                  {stats?.tickets ?? '—'}
+                </div>
               </div>
-              <div className="text-lg font-semibold text-slate-800">—</div>
             </div>
-          </div>
+          )}
 
           <button
             onClick={handleLogout}

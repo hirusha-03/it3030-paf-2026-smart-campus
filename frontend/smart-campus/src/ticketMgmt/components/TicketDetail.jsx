@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Send, RefreshCw, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { getTicketById, addComment, updateTicketStatus, rejectTicket, updateComment, deleteComment } from '../api/ticketService';
-import { isAdmin, isStaff, isTechnician } from '../utils/roleUtils';
+import { isAdmin, isStaff } from '../utils/roleUtils';
 import RejectModal from './RejectModal';
 import EditCommentModal from './EditCommentModal';
 
@@ -15,10 +15,26 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentMessage, setEditingCommentMessage] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [activeAttachment, setActiveAttachment] = useState(null);
+  const [commentError, setCommentError] = useState('');
+  const [statusError, setStatusError] = useState('');
 
   useEffect(() => {
     fetchTicket();
   }, [ticketId]);
+
+  useEffect(() => {
+    if (!activeAttachment) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setActiveAttachment(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeAttachment]);
 
   const fetchTicket = async () => {
     try {
@@ -55,7 +71,11 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   };
 
   const handleAddComment = async () => {
-    if (!comment.trim()) return;
+    if (!comment.trim()) {
+      setCommentError('Comment cannot be empty.');
+      return;
+    }
+    setCommentError('');
     try {
       await addComment(ticketId, comment);
       setComment('');
@@ -69,9 +89,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   const handleUpdateStatus = async () => {
   // Guard — don't send if status hasn't changed
   if (status === ticket.status) {
-    alert('Please select a different status to update.');
+    setStatusError('Please select a different status to update.');
     return;
   }
+  setStatusError('');
   try {
     await updateTicketStatus(ticketId, status, resolutionNotes || null);
     fetchTicket();
@@ -133,6 +154,27 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
     }
   };
 
+  const formatMillis = (ms) => {
+    if (!ms && ms !== 0) return '-';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  };
+
+  const formatDateTime = (iso) => {
+    if (!iso) return '-';
+    try {
+      return new Date(iso).toLocaleString();
+    } catch (e) {
+      return iso;
+    }
+  };
+
   if (!ticket) return <div>Loading...</div>;
 
   const allowedStatuses = getAllowedStatuses();
@@ -183,7 +225,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                 <>
                   <select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                    onChange={(e) => {
+                      setStatus(e.target.value);
+                      if (statusError) setStatusError('');
+                    }}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
                     {allowedStatuses.map(s => (
@@ -195,10 +240,11 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                   <button
                     onClick={handleUpdateStatus}
                     disabled={status === ticket.status}
-                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Update status"
                   >
                     <RefreshCw size={18} />
+                    Update Status
                   </button>
                 </>
               ) : (
@@ -208,6 +254,9 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                 </span>
               )}
             </div>
+            {canUpdateStatus && (
+              <p className="mt-2 text-xs text-slate-500">Select a status and click Update Status to save.</p>
+            )}
           </div>
 
           <div>
@@ -233,6 +282,26 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
           <div>
             <span className="text-sm font-medium text-slate-500">Contact Details:</span>
             <p className="mt-2 text-slate-700">{ticket.contactDetails || 'N/A'}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">First Response At:</span>
+            <p className="mt-2 text-slate-700">{formatDateTime(ticket.firstResponseAt)}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">Time to First Response:</span>
+            <p className="mt-2 text-slate-700">{formatMillis(ticket.timeToFirstResponseMillis)}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">Resolved At:</span>
+            <p className="mt-2 text-slate-700">{formatDateTime(ticket.resolvedAt)}</p>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-slate-500">Time to Resolution:</span>
+            <p className="mt-2 text-slate-700">{formatMillis(ticket.timeToResolutionMillis)}</p>
           </div>
         </div>
 
@@ -266,7 +335,18 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
               <div className="flex gap-3 flex-wrap">
                 {ticket.attachments.map((attachment) => (
                   <div key={attachment.id} className="flex flex-col items-start">
-                    <img src={attachment.filePath} alt="attachment" className="w-48 h-auto rounded border" />
+                    <button
+                      type="button"
+                      onClick={() => setActiveAttachment(attachment)}
+                      className="group"
+                      aria-label={`Open attachment ${attachment.fileName || attachment.filePath.split('/').pop()}`}
+                    >
+                      <img
+                        src={attachment.filePath}
+                        alt={attachment.fileName || 'attachment'}
+                        className="w-48 h-auto rounded border cursor-zoom-in group-hover:opacity-90"
+                      />
+                    </button>
                     <span className="text-xs text-slate-500 mt-1">{attachment.fileName || attachment.filePath.split('/').pop()}</span>
                   </div>
                 ))}
@@ -321,7 +401,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
           <input
             type="text"
             value={comment}
-            onChange={(e) => setComment(e.target.value)}
+            onChange={(e) => {
+              setComment(e.target.value);
+              if (e.target.value.trim()) setCommentError('');
+            }}
             onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
             placeholder="Add a comment..."
             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -334,9 +417,41 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
             Send
           </button>
         </div>
+        {commentError && <p className="mt-2 text-xs text-red-600">{commentError}</p>}
       </div>
 
       {/* Modals */}
+      {activeAttachment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4"
+          onClick={() => setActiveAttachment(null)}
+        >
+          <div
+            className="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 mb-3">
+              <h4 className="text-sm font-semibold text-slate-700 truncate">
+                {activeAttachment.fileName || activeAttachment.filePath.split('/').pop()}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setActiveAttachment(null)}
+                className="text-sm text-slate-500 hover:text-slate-700"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex items-center justify-center bg-slate-50 rounded-xl p-3">
+              <img
+                src={activeAttachment.filePath}
+                alt={activeAttachment.fileName || 'attachment'}
+                className="max-h-[75vh] w-auto object-contain rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <RejectModal
         isOpen={isRejectModalOpen}
         onClose={() => setIsRejectModalOpen(false)}

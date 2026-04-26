@@ -43,6 +43,8 @@ export function SignIn() {
         roles: res.data.roles,
       }));
 
+      window.dispatchEvent(new Event("auth-changed"));
+
       navigate("/profile");
     } catch (err) {
       setError("Invalid username or password.");

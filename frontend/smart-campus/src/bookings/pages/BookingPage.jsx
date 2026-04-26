@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { createBooking, getAvailableResources } from "../api/bookingApi";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { createBooking, getAvailableResources, getBookingById, updateBooking } from "../api/bookingApi";
 import BookingForm from "../components/BookingForm";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -30,19 +30,42 @@ function mapResourceForUi(resource) {
 
 function BookingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const editBookingId = Number(searchParams.get("editBookingId"));
+  const selectedResourceIdFromQuery = Number(searchParams.get("selectedResourceId"));
+  const selectedResourceIdFromState = Number(location?.state?.selectedResourceId);
+  // added by thiyangi: supports resource preselection from Resource Details navigation.
+  const preselectedResourceId = Number.isFinite(selectedResourceIdFromState) && selectedResourceIdFromState > 0
+    ? selectedResourceIdFromState
+    : (Number.isFinite(selectedResourceIdFromQuery) && selectedResourceIdFromQuery > 0
+      ? selectedResourceIdFromQuery
+      : null);
+  const isEditMode = Number.isFinite(editBookingId) && editBookingId > 0;
+
   const [resources, setResources] = useState([]);
   const [selectedResourceType, setSelectedResourceType] = useState("");
   const [selectedResourceId, setSelectedResourceId] = useState(null);
+  const [initialFormValues, setInitialFormValues] = useState(null);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
+  const [isLoadingBooking, setIsLoadingBooking] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const resourceTypes = [...new Set(resources.map((resource) => resource.type).filter(Boolean))];
-  const filteredResources = selectedResourceType
-    ? resources.filter((resource) => resource.type === selectedResourceType)
-    : [];
-  const selectedResource =
-    filteredResources.find((resource) => resource.id === selectedResourceId) || null;
+  const filteredResources = useMemo(
+    () => (selectedResourceType
+      ? resources.filter((resource) => resource.type === selectedResourceType)
+      : []),
+    [resources, selectedResourceType],
+  );
+  const selectedResource = useMemo(
+    () => filteredResources.find((resource) => resource.id === selectedResourceId) || null,
+    [filteredResources, selectedResourceId],
+  );
+  const bookingFormKey = isEditMode
+    ? `edit-${editBookingId}-${initialFormValues?.date || 'loading'}`
+    : 'create';
 
   useEffect(() => {
     let isMounted = true;
@@ -50,45 +73,103 @@ function BookingPage() {
     const loadResources = async () => {
       setIsLoadingResources(true);
       try {
-        const data = await getAvailableResources();
+        const [data, bookingData] = await Promise.all([
+          getAvailableResources(),
+          isEditMode ? getBookingById(editBookingId) : Promise.resolve(null),
+        ]);
         const mapped = Array.isArray(data)
           ? data.map(mapResourceForUi).filter((resource) => Number.isInteger(resource.id))
           : [];
 
         if (isMounted && mapped.length > 0) {
-          const initialType = mapped[0]?.type || "";
-          const initialResourcesForType = initialType
-            ? mapped.filter((resource) => resource.type === initialType)
-            : [];
           setResources(mapped);
-          setSelectedResourceType(initialType);
-          setSelectedResourceId(initialResourcesForType[0]?.id ?? null);
+
+          if (isEditMode && bookingData) {
+            const bookingStatus = typeof bookingData?.status === "string" ? bookingData.status.toUpperCase() : "";
+            if (bookingStatus !== "PENDING") {
+              setErrorMessage("Only pending bookings can be updated.");
+              setSelectedResourceType(mapped[0]?.type || "");
+              setSelectedResourceId(mapped[0]?.id ?? null);
+            } else {
+              const bookingResourceId = Array.isArray(bookingData?.resourceIds)
+                ? Number(bookingData.resourceIds[0])
+                : null;
+              const matchedResource = mapped.find((resource) => resource.id === bookingResourceId) || null;
+              const fallbackResource = mapped[0] || null;
+              const selected = matchedResource || fallbackResource;
+
+              if (selected) {
+                setSelectedResourceType(selected.type || "");
+                setSelectedResourceId(selected.id);
+              }
+
+              setInitialFormValues({
+                date: bookingData?.date || "",
+                startTime: bookingData?.startTime || "",
+                endTime: bookingData?.endTime || "",
+                purpose: bookingData?.purpose || "",
+                expectedAttendees: bookingData?.expectedAttendees,
+              });
+            }
+          } else {
+            const preselectedResource = preselectedResourceId
+              ? mapped.find((resource) => resource.id === preselectedResourceId) || null
+              : null;
+
+            if (preselectedResource) {
+              setSelectedResourceType(preselectedResource.type || "");
+              setSelectedResourceId(preselectedResource.id);
+            } else {
+              const initialType = mapped[0]?.type || "";
+              const initialResourcesForType = initialType
+                ? mapped.filter((resource) => resource.type === initialType)
+                : [];
+              setSelectedResourceType(initialType);
+              setSelectedResourceId(initialResourcesForType[0]?.id ?? null);
+            }
+            setInitialFormValues(null);
+          }
         } else if (isMounted) {
           setResources([]);
           setSelectedResourceType("");
           setSelectedResourceId(null);
           setErrorMessage("No resources available right now.");
         }
-      } catch {
+
+        if (isMounted && isEditMode) {
+          setIsLoadingBooking(false);
+        }
+      } catch (error) {
         if (isMounted) {
           setResources([]);
           setSelectedResourceType("");
           setSelectedResourceId(null);
-          setErrorMessage("Unable to load resources from database right now.");
+          const backendMessage =
+            error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            (isEditMode
+              ? "Unable to load booking details right now."
+              : "Unable to load resources from database right now.");
+          setErrorMessage(backendMessage);
         }
       } finally {
         if (isMounted) {
           setIsLoadingResources(false);
+          setIsLoadingBooking(false);
         }
       }
     };
+
+    if (isEditMode) {
+      setIsLoadingBooking(true);
+    }
 
     loadResources();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [editBookingId, isEditMode, preselectedResourceId]);
 
   useEffect(() => {
     if (!selectedResourceType) {
@@ -121,14 +202,21 @@ function BookingPage() {
     setIsSubmitting(true);
 
     try {
-      await createBooking(payload);
-      setSuccessMessage("Booking successful!");
-      navigate("/my-bookings");
+      if (isEditMode) {
+        await updateBooking(editBookingId, payload);
+        setSuccessMessage("Booking updated successfully!");
+      } else {
+        await createBooking(payload);
+        setSuccessMessage("Booking successful!");
+      }
+      navigate("/dashboard/bookings");
     } catch (error) {
       const backendMessage =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
-        "Unable to create booking. Please check time conflicts and try again.";
+        (isEditMode
+          ? "Unable to update booking. Please check conflicts and try again."
+          : "Unable to create booking. Please check time conflicts and try again.");
       setErrorMessage(backendMessage);
       throw error;
     } finally {
@@ -146,9 +234,17 @@ function BookingPage() {
             Request Campus Resource
           </h1>
           <p className="mt-2 max-w-3xl text-slate-600">
-            Choose a resource, provide your schedule and usage details, then submit your booking request.
+            {isEditMode
+              ? "Update your pending booking by changing resource, schedule, or purpose."
+              : "Choose a resource, provide your schedule and usage details, then submit your booking request."}
           </p>
         </header>
+
+        {isEditMode && isLoadingBooking && (
+          <div className="mb-6 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700">
+            Loading booking details...
+          </div>
+        )}
 
         {successMessage && (
           <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
@@ -199,6 +295,7 @@ function BookingPage() {
 
           <div className="lg:col-span-3">
             <BookingForm
+              key={bookingFormKey}
               resourceTypes={resourceTypes}
               selectedResourceType={selectedResourceType}
               onResourceTypeChange={handleResourceTypeChange}
@@ -207,7 +304,9 @@ function BookingPage() {
               selectedResource={selectedResource}
               onResourceChange={handleResourceChange}
               onSubmit={handleBookingSubmit}
-              isSubmitting={isSubmitting || isLoadingResources || !selectedResourceId}
+              isSubmitting={isSubmitting || isLoadingResources || isLoadingBooking || !selectedResourceId}
+              initialValues={initialFormValues}
+              submitLabel={isEditMode ? "Update Booking" : "Create Booking"}
             />
             {isLoadingResources && (
               <p className="mt-3 text-xs text-slate-500">Loading resources from server...</p>

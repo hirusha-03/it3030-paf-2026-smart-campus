@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.smart.backend.TicketMgmt.repo",
     "com.smart.backend.authentication.repo",
     "com.smart.backend.BookingMgmt.repo",
+    "com.smart.backend.Notification.repo"
 })
 public class BackendApplication {
     public static void main(String[] args) {

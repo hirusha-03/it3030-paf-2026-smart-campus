@@ -7,6 +7,7 @@ import com.smart.backend.ResourceMgmt.enums.ResourceType;
 import com.smart.backend.ResourceMgmt.service.ResourceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,13 +19,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/resources")
-@CrossOrigin
 @RequiredArgsConstructor
 public class ResourceController {
 
     private final ResourceService resourceService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResourceResponseDTO> createResource(
             @Valid @RequestBody ResourceRequestDTO requestDTO) {
         ResourceResponseDTO created = resourceService.createResource(requestDTO);
@@ -37,7 +38,7 @@ public class ResourceController {
         return ResponseEntity.ok(resource);
     }
 
-    @GetMapping
+    @GetMapping(path = {"", "/"})
     public ResponseEntity<Page<ResourceResponseDTO>> getAllResources(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -60,6 +61,7 @@ public class ResourceController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResourceResponseDTO> updateResource(
             @PathVariable Long id,
             @Valid @RequestBody ResourceRequestDTO requestDTO) {
@@ -68,12 +70,14 @@ public class ResourceController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
         resourceService.deleteResource(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResourceResponseDTO> updateResourceStatus(
             @PathVariable Long id,
             @RequestParam ResourceStatus status) {

@@ -52,7 +52,9 @@ public class JWTService implements UserDetailsService {
 //        }
 
         user.getRole().forEach((role -> {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getRoleName()));
+            String rn = role.getRoleName();
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + rn.toUpperCase()));
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + rn));
         }));
 
         return authorities;
