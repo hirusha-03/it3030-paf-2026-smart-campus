@@ -1,12 +1,14 @@
 import { Bell, Search, UserCircle, Menu, House } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../authentication/hooks/useAuth';
 import axios from 'axios';
 import NotificationPanel from './NotificationPanel';
 
 const Header = ({ setSidebarOpen }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const bellRef = useRef(null);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications,     setNotifications]     = useState([]);
@@ -136,6 +138,7 @@ const Header = ({ setSidebarOpen }) => {
         {/* Notification bell with panel */}
         <div className="relative">
           <button
+            ref={(el) => { /* attach ref for NotificationPanel positioning */ bellRef.current = el; }}
             onClick={() => setShowNotifications(prev => !prev)}
             className="relative p-2 text-slate-500 hover:bg-slate-100
               rounded-full transition-all"
@@ -162,6 +165,16 @@ const Header = ({ setSidebarOpen }) => {
               onMarkAllRead={handleMarkAllRead}
               onDismiss={handleDismiss}            // Pass handler down
               onRestoreDismissed={handleRestoreDismissed} // Pass restore handler
+              anchorRef={bellRef}
+              onNotificationClick={(n) => {
+                const ticketId = n?.meta?.ticketId || n?.data?.ticketId || n?.ticketId;
+                if (ticketId) {
+                  navigate('/tickets', { state: { ticketId } });
+                } else {
+                  navigate('/tickets', { state: { scrollTo: 'tickets-heading' } });
+                }
+                setShowNotifications(false);
+              }}
             />
           )}
         </div>

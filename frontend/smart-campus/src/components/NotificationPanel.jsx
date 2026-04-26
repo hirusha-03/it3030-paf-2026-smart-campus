@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { CheckCheck, Bell, X } from 'lucide-react';
 
@@ -87,8 +88,11 @@ export default function NotificationPanel({
   onMarkAllRead,
   onDismiss,           // Received from Header
   onRestoreDismissed,
+  onNotificationClick,
+  anchorRef,
 }) {
   const panelRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 384 });
 
   // Close on outside click
   useEffect(() => {
@@ -101,17 +105,48 @@ export default function NotificationPanel({
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
+  // Position the panel relative to the anchor button using a portal so it escapes stacking contexts
+  useEffect(() => {
+    const update = () => {
+      try {
+        const anchor = anchorRef?.current;
+        const width = 384; // w-96
+        if (!anchor) return setPos((p) => ({ ...p }));
+        const rect = anchor.getBoundingClientRect();
+        const top = Math.max(8, rect.bottom + 8);
+        let left = rect.right - width;
+        if (left < 8) left = 8;
+        if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - width - 8);
+        setPos({ top, left, width });
+      } catch (e) {
+        // ignore
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [anchorRef]);
+
   
   // Filter out dismissed notifications
   const visibleNotifications = notifications.filter(n => !dismissed.has(n.id));
   const unreadCount = visibleNotifications.filter(n => !n.read).length;
 
-  return (
+  const panel = (
     <div
       ref={panelRef}
-      className="absolute right-0 top-12 w-96 bg-white border border-slate-200
-        rounded-2xl z-50 overflow-hidden"
-      style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+      className="bg-white border border-slate-200 rounded-2xl z-50 overflow-hidden"
+      style={{
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        position: 'fixed',
+        top: pos.top,
+        left: pos.left,
+        width: pos.width,
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4
@@ -183,12 +218,15 @@ export default function NotificationPanel({
 
             return (
               <div
-                key={n.id}
-                onClick={() => !n.read && onMarkRead(n.id)}
-                className={`group px-5 py-4 border-b border-slate-50
-                  transition-colors hover:bg-slate-50 cursor-pointer
-                  ${!n.read ? 'bg-indigo-50/40' : ''}`}
-              >
+                  key={n.id}
+                  onClick={() => {
+                    if (!n.read) onMarkRead(n.id);
+                    if (onNotificationClick) onNotificationClick(n);
+                  }}
+                  className={`group px-5 py-4 border-b border-slate-50
+                    transition-colors hover:bg-slate-50 cursor-pointer
+                    ${!n.read ? 'bg-indigo-50/40' : ''}`}
+                >
                 <div className="flex items-start gap-3">
                   <div className="mt-1.5 flex-shrink-0">
                     <div className={`w-2 h-2 rounded-full ${
@@ -249,4 +287,6 @@ export default function NotificationPanel({
       )}
     </div>
   );
+
+  return createPortal(panel, document.body);
 }
