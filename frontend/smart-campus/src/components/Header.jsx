@@ -111,10 +111,17 @@ const Header = ({ setSidebarOpen }) => {
   };
 
   return (
-    <header className="h-20 bg-white border-b border-slate-200 flex items-center
-      justify-between px-8 sticky top-0 z-10">
-
+    <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 relative">
       <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          className="flex items-center gap-2 text-slate-900 font-semibold tracking-tight"
+          title="Open menu"
+        >
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white text-sm">SC</span>
+          <span className="hidden lg:inline">Smart Campus</span>
+        </button>
         <button
           onClick={() => setSidebarOpen(true)}
           className="md:hidden p-2 text-slate-500 hover:bg-slate-100
@@ -122,18 +129,6 @@ const Header = ({ setSidebarOpen }) => {
         >
           <Menu size={22} />
         </button>
-        <div className="relative w-96 hidden md:block">
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-            <Search size={18} />
-          </span>
-          <input
-            type="text"
-            placeholder="Search resources or tickets..."
-            className="block w-full pl-10 pr-3 py-2 border border-slate-200
-              rounded-xl bg-slate-50 focus:ring-2 focus:ring-indigo-500
-              outline-none text-sm"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-6">
