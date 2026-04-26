@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 
 const EditCommentModal = ({ isOpen, onClose, onSubmit, initialMessage }) => {
   const [message, setMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (initialMessage) {
@@ -26,9 +27,10 @@ const EditCommentModal = ({ isOpen, onClose, onSubmit, initialMessage }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!message.trim()) {
-      alert('Comment cannot be empty');
+      setErrorMsg('Comment cannot be empty.');
       return;
     }
+    setErrorMsg('');
     onSubmit(message);
     setMessage('');
     onClose();
@@ -56,11 +58,15 @@ const EditCommentModal = ({ isOpen, onClose, onSubmit, initialMessage }) => {
             <label className="block text-sm font-medium text-slate-700 mb-2">Message</label>
             <textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                if (e.target.value.trim()) setErrorMsg('');
+              }}
               rows={4}
               placeholder="Edit your comment..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
+            {errorMsg && <p className="mt-2 text-xs text-red-600">{errorMsg}</p>}
           </div>
           <div className="flex justify-end gap-3">
             <button

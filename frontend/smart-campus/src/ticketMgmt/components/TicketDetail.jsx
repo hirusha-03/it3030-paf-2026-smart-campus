@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Send, RefreshCw, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { getTicketById, addComment, updateTicketStatus, rejectTicket, updateComment, deleteComment } from '../api/ticketService';
-import { isAdmin, isStaff, isTechnician } from '../utils/roleUtils';
+import { isAdmin, isStaff } from '../utils/roleUtils';
 import RejectModal from './RejectModal';
 import EditCommentModal from './EditCommentModal';
 
@@ -16,6 +16,8 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   const [editingCommentMessage, setEditingCommentMessage] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [activeAttachment, setActiveAttachment] = useState(null);
+  const [commentError, setCommentError] = useState('');
+  const [statusError, setStatusError] = useState('');
 
   useEffect(() => {
     fetchTicket();
@@ -69,7 +71,11 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   };
 
   const handleAddComment = async () => {
-    if (!comment.trim()) return;
+    if (!comment.trim()) {
+      setCommentError('Comment cannot be empty.');
+      return;
+    }
+    setCommentError('');
     try {
       await addComment(ticketId, comment);
       setComment('');
@@ -83,9 +89,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   const handleUpdateStatus = async () => {
   // Guard — don't send if status hasn't changed
   if (status === ticket.status) {
-    alert('Please select a different status to update.');
+    setStatusError('Please select a different status to update.');
     return;
   }
+  setStatusError('');
   try {
     await updateTicketStatus(ticketId, status, resolutionNotes || null);
     fetchTicket();
@@ -218,7 +225,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                 <>
                   <select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                    onChange={(e) => {
+                      setStatus(e.target.value);
+                      if (statusError) setStatusError('');
+                    }}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
                     {allowedStatuses.map(s => (
@@ -391,7 +401,10 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
           <input
             type="text"
             value={comment}
-            onChange={(e) => setComment(e.target.value)}
+            onChange={(e) => {
+              setComment(e.target.value);
+              if (e.target.value.trim()) setCommentError('');
+            }}
             onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
             placeholder="Add a comment..."
             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -404,6 +417,7 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
             Send
           </button>
         </div>
+        {commentError && <p className="mt-2 text-xs text-red-600">{commentError}</p>}
       </div>
 
       {/* Modals */}
