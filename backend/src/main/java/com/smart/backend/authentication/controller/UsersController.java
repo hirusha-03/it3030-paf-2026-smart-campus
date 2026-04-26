@@ -1,6 +1,8 @@
 package com.smart.backend.authentication.controller;
 
+import com.smart.backend.BookingMgmt.repo.BookingRepository;
 import com.smart.backend.TicketMgmt.dto.UserSummaryDto;
+import com.smart.backend.TicketMgmt.repo.TicketRepository;
 import com.smart.backend.authentication.dto.SignupRequest;
 import com.smart.backend.authentication.dto.UserProfileResponse;
 import com.smart.backend.authentication.entity.Users;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,6 +31,12 @@ public class UsersController {
 
     @Autowired
     private UserRepo userRepo;
+
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private TicketRepository ticketRepository;
 
     @PostConstruct
     public void initRoleAndUser(){
@@ -55,7 +64,7 @@ public class UsersController {
         return ResponseEntity.ok(userService.getUserProfile(authentication.getName()));
     }
 
-    @PreAuthorize("hasRole('Admin')")
+    //@PreAuthorize("hasRole('Admin')")
     @GetMapping("/technicians")
     public ResponseEntity<List<UserSummaryDto>> getTechnicians() {
         return ResponseEntity.ok(userService.getUsersByRole("Technician"));
@@ -73,4 +82,19 @@ public class UsersController {
         return ResponseEntity.ok(Map.of("available", available));
     }
 
+    @GetMapping("/me/stats")
+    public ResponseEntity<Map<String, Long>> getUserStats(Authentication authentication) {
+        String username = authentication.getName();
+
+        Users user = userRepo.findByUserName(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        long bookingCount = bookingRepository.countByUser(user);
+        long ticketCount  = ticketRepository.countByCreatedBy(user);
+
+        return ResponseEntity.ok(Map.of(
+                "bookings", bookingCount,
+                "tickets",  ticketCount
+        ));
+    }
 }

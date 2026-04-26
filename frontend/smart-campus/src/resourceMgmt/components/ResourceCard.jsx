@@ -40,17 +40,35 @@ function ResourceCard({ resource, onDelete }) {
     OUT_OF_SERVICE: "Out of Service",
   };
 
+  // Default image if none provided
+  const defaultImage = "https://via.placeholder.com/400x200?text=No+Image";
+
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+      {/* Image Section */}
+      <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+        <img
+          src={resource.imageUrl || defaultImage}
+          alt={resource.name}
+          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+          onError={(e) => {
+            e.target.src = defaultImage;
+          }}
+        />
+        {/* Status badge overlay on image */}
+        <div className="absolute top-2 right-2">
+          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusColors[resource.status]}`}>
+            {statusLabels[resource.status]}
+          </span>
+        </div>
+      </div>
+
       <div className="p-5">
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{typeIcons[resource.type] || "📦"}</span>
             <h3 className="text-lg font-bold text-slate-900">{resource.name}</h3>
           </div>
-          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusColors[resource.status]}`}>
-            {statusLabels[resource.status]}
-          </span>
         </div>
 
         <p className="text-sm font-medium text-indigo-600 mb-3">{resource.typeDisplayName}</p>

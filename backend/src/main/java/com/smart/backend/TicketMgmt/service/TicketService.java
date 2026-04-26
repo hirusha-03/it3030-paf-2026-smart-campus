@@ -1,5 +1,6 @@
 package com.smart.backend.TicketMgmt.service;
 
+import com.smart.backend.Notification.service.NotificationService;
 import com.smart.backend.TicketMgmt.dto.*;
 import com.smart.backend.TicketMgmt.enums.TicketStatus;
 import com.smart.backend.TicketMgmt.model.Attachment;
@@ -37,6 +38,9 @@ public class TicketService {
     @Autowired
     private AttachmentRepository attachmentRepo;
 
+    @Autowired
+    private NotificationService notificationService;
+
     public TicketResponseDto createTicket(TicketCreateDto dto, Long userId) {
         Users user = authUserRepo.findById(userId.intValue()).orElseThrow();
         Ticket ticket = new Ticket(dto.getTitle(), dto.getDescription(), dto.getPriority(), user,
@@ -71,6 +75,21 @@ public class TicketService {
                 attachmentRepo.save(att);
             }
         }
+        // Notify all admins about new ticket
+        String creatorName = buildDisplayName(user);
+        List<Users> admins = authUserRepo.findAllAdmins();
+        final Ticket savedTicket = ticket;
+
+        admins.forEach(admin ->
+                notificationService.createNotification(
+                        admin,
+                        "New Ticket Submitted",
+                        creatorName + " submitted a new ticket: \"" + savedTicket.getTitle() + "\"" +
+                                (savedTicket.getCategory() != null ? " [" + savedTicket.getCategory() + "]" : "") + ".",
+                        "TICKET_CREATED",
+                        savedTicket.getId()
+                )
+        );
         return mapToResponse(ticket);
     }
 
@@ -109,118 +128,195 @@ public class TicketService {
     }
 
     public TicketResponseDto assignTicket(Long ticketId, TicketAssignDto dto, Long adminId) {
-    Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
-    if (!hasRole(admin, "Admin")) {
-        throw new IllegalStateException("Only Admin users can assign tickets");
-    }
-
-    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-
-    // Can only assign OPEN tickets
-    if (ticket.getStatus() != TicketStatus.OPEN) {
-        throw new IllegalStateException("Only OPEN tickets can be assigned");
-    }
-
-    Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
-    if (!hasRole(technician, "Technician")) {
-        throw new IllegalArgumentException("Assigned user must have Technician role");
-    }
-
-    ticket.setAssignedTo(technician);
-    // Automatically move to IN_PROGRESS when assigned
-    TicketStatus previous = ticket.getStatus();
-    ticket.setStatus(TicketStatus.IN_PROGRESS);
-    // Set firstResponseAt on assignment if not already set
-    if (ticket.getFirstResponseAt() == null) {
-        ticket.setFirstResponseAt(LocalDateTime.now());
-    }
-
-    Ticket saved = ticketRepo.save(ticket);
-    // publish status change event
-    eventPublisher.publishEvent(new TicketStatusChangedEvent(saved.getId(), previous, saved.getStatus(), (long) admin.getUserId(), LocalDateTime.now()));
-    return mapToResponse(saved);
-}
-
-public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
-    Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
-    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-
-    if (!hasRole(tech, "Technician") && !hasRole(tech, "Admin")) {
-        throw new IllegalStateException("Only Technician or Admin users can update ticket status");
-    }
-
-    // Technician can only update their assigned ticket
-    if (hasRole(tech, "Technician")) {
-        if (ticket.getAssignedTo() == null ||
-            ticket.getAssignedTo().getUserId() != techId.intValue()) {
-            throw new IllegalStateException("You can only update tickets assigned to you");
+        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+        if (!hasRole(admin, "Admin")) {
+            throw new IllegalStateException("Only Admin users can assign tickets");
         }
-    }
 
-    // Terminal states — nobody can change these
-    if (ticket.getStatus() == TicketStatus.CLOSED ||
-        ticket.getStatus() == TicketStatus.REJECTED) {
-        throw new IllegalStateException("Cannot change status of a " + ticket.getStatus() + " ticket");
-    }
+        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
 
-    // Enforce valid transitions
-    TicketStatus current = ticket.getStatus();
-    TicketStatus next = dto.getStatus();
+        // Can only assign OPEN tickets
+        if (ticket.getStatus() != TicketStatus.OPEN) {
+            throw new IllegalStateException("Only OPEN tickets can be assigned");
+        }
 
-    if (current == next) {
-    return mapToResponse(ticket);
-    }
+        Users technician = authUserRepo.findById(dto.getAssignedToId().intValue()).orElseThrow();
+        if (!hasRole(technician, "Technician")) {
+            throw new IllegalArgumentException("Assigned user must have Technician role");
+        }
 
-    boolean validTransition =
-        (current == TicketStatus.IN_PROGRESS && next == TicketStatus.RESOLVED) ||
-        (current == TicketStatus.RESOLVED    && next == TicketStatus.CLOSED);
+        ticket.setAssignedTo(technician);
+        // Automatically move to IN_PROGRESS when assigned
+        TicketStatus previous = ticket.getStatus();
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
 
-    if (!validTransition) {
-        throw new IllegalStateException(
-            "Invalid status transition: " + current + " → " + next +
-            ". Allowed: IN_PROGRESS → RESOLVED, RESOLVED → CLOSED"
+        // Set firstResponseAt on assignment if not already set
+        if (ticket.getFirstResponseAt() == null) {
+            ticket.setFirstResponseAt(LocalDateTime.now());
+        }
+
+        Ticket updated = ticketRepo.save(ticket);
+
+        // Notify ticket creator that ticket is assigned and in progress
+        if (updated.getCreatedBy() != null) {
+            notificationService.createNotification(
+                    updated.getCreatedBy(),
+                    "Ticket Assigned",
+                    "Your ticket \"" + updated.getTitle() + "\" has been assigned to " +
+                            buildDisplayName(technician) + " and is now in progress.",
+                    "TICKET_ASSIGNED",
+                    updated.getId()
+            );
+        }
+
+        // Notify technician about new assignment
+        notificationService.createNotification(
+                technician,
+                "New Ticket Assigned to You",
+                "You have been assigned ticket: \"" + updated.getTitle() + "\"" +
+                        (updated.getPriority() != null ? " (Priority: " + updated.getPriority() + ")" : "") + ".",
+                "TICKET_ASSIGNED",
+                updated.getId()
         );
+
+        // publish status change event
+        eventPublisher.publishEvent(new TicketStatusChangedEvent(updated.getId(), previous, updated.getStatus(), (long) admin.getUserId(), LocalDateTime.now()));
+        return mapToResponse(updated);
     }
 
-    // Resolution notes only allowed when resolving or closing
-    if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
-        if (next == TicketStatus.RESOLVED || next == TicketStatus.CLOSED) {
-            ticket.setResolutionNotes(dto.getResolutionNotes());
-        } else {
-            throw new IllegalArgumentException("Resolution notes can only be added when status is RESOLVED or CLOSED");
+    public TicketResponseDto updateStatus(Long ticketId, TicketUpdateDto dto, Long techId) {
+        Users tech = authUserRepo.findById(techId.intValue()).orElseThrow();
+        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+        if (!hasRole(tech, "Technician") && !hasRole(tech, "Admin")) {
+            throw new IllegalStateException("Only Technician or Admin users can update ticket status");
         }
+
+        // Technician can only update their assigned ticket
+        if (hasRole(tech, "Technician")) {
+            if (ticket.getAssignedTo() == null ||
+                ticket.getAssignedTo().getUserId() != techId.intValue()) {
+                throw new IllegalStateException("You can only update tickets assigned to you");
+            }
+        }
+
+        // Terminal states — nobody can change these
+        if (ticket.getStatus() == TicketStatus.CLOSED ||
+            ticket.getStatus() == TicketStatus.REJECTED) {
+            throw new IllegalStateException("Cannot change status of a " + ticket.getStatus() + " ticket");
+        }
+
+        // Enforce valid transitions
+        TicketStatus current = ticket.getStatus();
+        TicketStatus next = dto.getStatus();
+
+        if (current == next) {
+            return mapToResponse(ticket);
+        }
+
+        boolean validTransition =
+            (current == TicketStatus.IN_PROGRESS && next == TicketStatus.RESOLVED) ||
+            (current == TicketStatus.RESOLVED    && next == TicketStatus.CLOSED);
+
+        if (!validTransition) {
+            throw new IllegalStateException(
+                "Invalid status transition: " + current + " → " + next +
+                ". Allowed: IN_PROGRESS → RESOLVED, RESOLVED → CLOSED"
+            );
+        }
+
+        // Resolution notes only allowed when resolving or closing
+        if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
+            if (next == TicketStatus.RESOLVED || next == TicketStatus.CLOSED) {
+                ticket.setResolutionNotes(dto.getResolutionNotes());
+            } else {
+                throw new IllegalArgumentException("Resolution notes can only be added when status is RESOLVED or CLOSED");
+            }
+        }
+
+        ticket.setStatus(next);
+
+        // Set resolvedAt when ticket is resolved
+        if (next == TicketStatus.RESOLVED && ticket.getResolvedAt() == null) {
+            ticket.setResolvedAt(LocalDateTime.now());
+        }
+
+        Ticket updated = ticketRepo.save(ticket);
+
+        // Notify ticket creator about status change
+        if (updated.getCreatedBy() != null) {
+            String techName = buildDisplayName(tech);
+
+            if (next == TicketStatus.RESOLVED) {
+                notificationService.createNotification(
+                        updated.getCreatedBy(),
+                        "Ticket Resolved",
+                        "Your ticket \"" + updated.getTitle() + "\" has been marked as resolved by " +
+                                techName +
+                                (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()
+                                        ? ". Notes: " + dto.getResolutionNotes()
+                                        : "") + ".",
+                        "TICKET_RESOLVED",
+                        updated.getId()
+                );
+            } else if (next == TicketStatus.CLOSED) {
+                notificationService.createNotification(
+                        updated.getCreatedBy(),
+                        "Ticket Closed",
+                        "Your ticket \"" + updated.getTitle() + "\" has been closed.",
+                        "TICKET_CLOSED",
+                        updated.getId()
+                );
+            } else {
+                notificationService.createNotification(
+                        updated.getCreatedBy(),
+                        "Ticket Status Updated",
+                        "Your ticket \"" + updated.getTitle() + "\" status changed to " + next + ".",
+                        "TICKET_STATUS_UPDATED",
+                        updated.getId()
+                );
+            }
+        }
+
+        // publish status change event
+        eventPublisher.publishEvent(new TicketStatusChangedEvent(updated.getId(), current, updated.getStatus(), (long) tech.getUserId(), LocalDateTime.now()));
+        return mapToResponse(updated);
     }
 
-    ticket.setStatus(next);
-    // Set resolvedAt when ticket is resolved
-    if (next == TicketStatus.RESOLVED && ticket.getResolvedAt() == null) {
-        ticket.setResolvedAt(LocalDateTime.now());
+    public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
+        Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
+        if (!hasRole(admin, "Admin")) {
+            throw new IllegalStateException("Only Admin users can reject tickets");
+        }
+
+        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+        // Can only reject OPEN tickets
+        if (ticket.getStatus() != TicketStatus.OPEN) {
+            throw new IllegalStateException("Only OPEN tickets can be rejected");
+        }
+
+        ticket.setStatus(TicketStatus.REJECTED);
+        ticket.setRejectionReason(dto.getRejectionReason());
+        Ticket updated = ticketRepo.save(ticket);
+
+        // Notify ticket creator about rejection
+        if (ticket.getCreatedBy() != null) {
+            notificationService.createNotification(
+                    ticket.getCreatedBy(),
+                    "Ticket Rejected",
+                    "Your ticket \"" + ticket.getTitle() + "\" has been rejected." +
+                            (dto.getRejectionReason() != null && !dto.getRejectionReason().isBlank()
+                                    ? " Reason: " + dto.getRejectionReason()
+                                    : ""),
+                    "TICKET_REJECTED",
+                    ticketId
+            );
+        }
+
+        return mapToResponse(updated);
     }
 
-    Ticket saved = ticketRepo.save(ticket);
-    // publish status change event
-    eventPublisher.publishEvent(new TicketStatusChangedEvent(saved.getId(), current, saved.getStatus(), (long) tech.getUserId(), LocalDateTime.now()));
-    return mapToResponse(saved);
-}
-
-public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long adminId) {
-    Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
-    if (!hasRole(admin, "Admin")) {
-        throw new IllegalStateException("Only Admin users can reject tickets");
-    }
-
-    Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
-
-    // Can only reject OPEN tickets
-    if (ticket.getStatus() != TicketStatus.OPEN) {
-        throw new IllegalStateException("Only OPEN tickets can be rejected");
-    }
-
-    ticket.setStatus(TicketStatus.REJECTED);
-    ticket.setRejectionReason(dto.getRejectionReason());
-    return mapToResponse(ticketRepo.save(ticket));
-}
-    
     public void deleteTicket(Long ticketId, Long adminId) {
         Users admin = authUserRepo.findById(adminId.intValue()).orElseThrow();
         if (!hasRole(admin, "Admin")) {
@@ -249,6 +345,35 @@ public TicketResponseDto rejectTicket(Long ticketId, TicketRejectDto dto, Long a
         Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
         Comment comment = new Comment(dto.getMessage(), ticket, user);
         commentRepo.save(comment);
+
+        String commenterName = buildDisplayName(user);
+        String preview = dto.getMessage().length() > 60
+                ? dto.getMessage().substring(0, 60) + "..."
+                : dto.getMessage();
+
+        //  Notify ticket creator if they didn't write the comment
+        Users creator = ticket.getCreatedBy();
+        if (creator != null && creator.getUserId() != userId.intValue()) {
+            notificationService.createNotification(
+                    creator,
+                    "New Comment on Your Ticket",
+                    commenterName + " commented on \"" + ticket.getTitle() + "\": \"" + preview + "\"",
+                    "TICKET_COMMENT",
+                    ticketId
+            );
+        }
+
+        //  Notify assigned technician if they didn't write the comment
+        Users assignedTo = ticket.getAssignedTo();
+        if (assignedTo != null && assignedTo.getUserId() != userId.intValue()) {
+            notificationService.createNotification(
+                    assignedTo,
+                    "New Comment on Assigned Ticket",
+                    commenterName + " commented on \"" + ticket.getTitle() + "\": \"" + preview + "\"",
+                    "TICKET_COMMENT",
+                    ticketId
+            );
+        }
     }
 
     private TicketResponseDto mapToResponse(Ticket ticket) {

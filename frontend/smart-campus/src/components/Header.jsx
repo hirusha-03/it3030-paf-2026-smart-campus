@@ -1,10 +1,94 @@
-import { Bell, UserCircle, Menu } from 'lucide-react';
+import { Bell, Search, UserCircle, Menu, House } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../authentication/hooks/useAuth';
+import axios from 'axios';
+import NotificationPanel from './NotificationPanel';
 
 const Header = ({ setSidebarOpen }) => {
   const { user } = useAuth();
 
-  //  Get initials for avatar
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications,     setNotifications]     = useState([]);
+  const [unreadCount,       setUnreadCount]       = useState(0);
+
+  const [dismissed, setDismissed] = useState(new Set());
+
+  const token = localStorage.getItem('token');
+
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(
+        'http://localhost:8080/api/v1/notifications',
+        { headers: authHeader }
+      );
+      setNotifications(res.data);
+      setUnreadCount(
+        res.data.filter(n => !n.read && !dismissed.has(n.id)).length
+      );
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  }, [token]);
+
+  // Poll every 30 seconds for new notifications
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    setUnreadCount(
+      notifications.filter(n => !n.read && !dismissed.has(n.id)).length
+    );
+  }, [dismissed, notifications]);
+
+  // Mark single notification as read
+  const handleMarkRead = async (id) => {
+    try {
+      await axios.patch(
+        `http://localhost:8080/api/v1/notifications/${id}/read`,
+        {},
+        { headers: authHeader }
+      );
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      );
+    } catch (err) {
+      console.error('Failed to mark as read:', err);
+    }
+  };
+
+  // Mark all as read
+  const handleMarkAllRead = async () => {
+    try {
+      await axios.patch(
+        'http://localhost:8080/api/v1/notifications/read-all',
+        {},
+        { headers: authHeader }
+      );
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  };
+
+  // Dismiss handler — lives in Header so state persists
+  const handleDismiss = (id) => {
+    setDismissed(prev => new Set([...prev, id]));
+  };
+
+  // Restore all dismissed
+  const handleRestoreDismissed = () => {
+    setDismissed(new Set());
+  };
+
   const getInitials = () => {
     if (!user) return 'U';
     const first = user.userFirstName?.[0] || '';
@@ -12,7 +96,6 @@ const Header = ({ setSidebarOpen }) => {
     return (first + last).toUpperCase() || user.userName?.[0]?.toUpperCase() || 'U';
   };
 
-  //  Get display name
   const getDisplayName = () => {
     if (!user) return 'User Name';
     if (user.userFirstName && user.userLastName)
@@ -21,7 +104,6 @@ const Header = ({ setSidebarOpen }) => {
     return user.userName || 'User Name';
   };
 
-  //  Get role
   const getRole = () => {
     if (!user?.roles) return 'User';
     const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
@@ -42,17 +124,56 @@ const Header = ({ setSidebarOpen }) => {
         </button>
         <button
           onClick={() => setSidebarOpen(true)}
-          className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all"
+          className="md:hidden p-2 text-slate-500 hover:bg-slate-100
+            rounded-full transition-all"
         >
           <Menu size={22} />
         </button>
       </div>
 
       <div className="flex items-center gap-6">
-        <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
-          <Bell size={22} />
-          <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-rose-500 border-2 border-white rounded-full"></span>
-        </button>
+
+        {/* Notification bell with panel */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(prev => !prev)}
+            className="relative p-2 text-slate-500 hover:bg-slate-100
+              rounded-full transition-all"
+          >
+            <Bell size={22} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[18px] h-[18px]
+                bg-rose-500 border-2 border-white rounded-full flex items-center
+                justify-center">
+                <span className="text-white text-[9px] font-bold leading-none px-0.5">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              </span>
+            )}
+          </button>
+
+          {/* Notification panel dropdown */}
+          {showNotifications && (
+            <NotificationPanel
+              notifications={notifications}
+              dismissed={dismissed}               // Pass dismissed set down
+              onClose={() => setShowNotifications(false)}
+              onMarkRead={handleMarkRead}
+              onMarkAllRead={handleMarkAllRead}
+              onDismiss={handleDismiss}            // Pass handler down
+              onRestoreDismissed={handleRestoreDismissed} // Pass restore handler
+            />
+          )}
+        </div>
+
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+          aria-label="Go to home page"
+        >
+          <House size={16} />
+          Home
+        </Link>
 
         <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
           <div className="text-right">
@@ -63,13 +184,15 @@ const Header = ({ setSidebarOpen }) => {
           </div>
 
           {user ? (
-            <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+            <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center
+              justify-center">
               <span className="text-indigo-600 font-semibold text-sm">
                 {getInitials()}
               </span>
             </div>
           ) : (
-            <div className="h-10 w-10 bg-slate-200 rounded-full flex items-center justify-center">
+            <div className="h-10 w-10 bg-slate-200 rounded-full flex items-center
+              justify-center">
               <UserCircle size={28} className="text-slate-400" />
             </div>
           )}

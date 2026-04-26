@@ -5,6 +5,8 @@ import com.smart.backend.BookingMgmt.model.Booking.BookingStatus;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+
+import com.smart.backend.authentication.entity.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -81,4 +83,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Spring Data method to fetch bookings in date range (useful for utilization calculations)
     java.util.List<Booking> findByDateBetween(LocalDate start, LocalDate end);
 
+    long countByUser(Users user);
 }
