@@ -15,10 +15,24 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentMessage, setEditingCommentMessage] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [activeAttachment, setActiveAttachment] = useState(null);
 
   useEffect(() => {
     fetchTicket();
   }, [ticketId]);
+
+  useEffect(() => {
+    if (!activeAttachment) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setActiveAttachment(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeAttachment]);
 
   const fetchTicket = async () => {
     try {
@@ -216,10 +230,11 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                   <button
                     onClick={handleUpdateStatus}
                     disabled={status === ticket.status}
-                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Update status"
                   >
                     <RefreshCw size={18} />
+                    Update Status
                   </button>
                 </>
               ) : (
@@ -229,6 +244,9 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
                 </span>
               )}
             </div>
+            {canUpdateStatus && (
+              <p className="mt-2 text-xs text-slate-500">Select a status and click Update Status to save.</p>
+            )}
           </div>
 
           <div>
@@ -307,7 +325,18 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
               <div className="flex gap-3 flex-wrap">
                 {ticket.attachments.map((attachment) => (
                   <div key={attachment.id} className="flex flex-col items-start">
-                    <img src={attachment.filePath} alt="attachment" className="w-48 h-auto rounded border" />
+                    <button
+                      type="button"
+                      onClick={() => setActiveAttachment(attachment)}
+                      className="group"
+                      aria-label={`Open attachment ${attachment.fileName || attachment.filePath.split('/').pop()}`}
+                    >
+                      <img
+                        src={attachment.filePath}
+                        alt={attachment.fileName || 'attachment'}
+                        className="w-48 h-auto rounded border cursor-zoom-in group-hover:opacity-90"
+                      />
+                    </button>
                     <span className="text-xs text-slate-500 mt-1">{attachment.fileName || attachment.filePath.split('/').pop()}</span>
                   </div>
                 ))}
@@ -378,6 +407,37 @@ const TicketDetail = ({ ticketId, onBack, userId, userRole }) => {
       </div>
 
       {/* Modals */}
+      {activeAttachment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4"
+          onClick={() => setActiveAttachment(null)}
+        >
+          <div
+            className="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 mb-3">
+              <h4 className="text-sm font-semibold text-slate-700 truncate">
+                {activeAttachment.fileName || activeAttachment.filePath.split('/').pop()}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setActiveAttachment(null)}
+                className="text-sm text-slate-500 hover:text-slate-700"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex items-center justify-center bg-slate-50 rounded-xl p-3">
+              <img
+                src={activeAttachment.filePath}
+                alt={activeAttachment.fileName || 'attachment'}
+                className="max-h-[75vh] w-auto object-contain rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <RejectModal
         isOpen={isRejectModalOpen}
         onClose={() => setIsRejectModalOpen(false)}
