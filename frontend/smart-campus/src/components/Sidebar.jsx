@@ -32,7 +32,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   return (
     <aside className={`fixed inset-y-0 left-0 w-64 bg-slate-900 text-white shadow-xl
       transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      md:translate-x-0 transition-transform duration-300 ease-in-out z-50
+      transition-transform duration-300 ease-in-out z-50
       flex flex-col`}>
 
       <div className="p-5 border-b border-slate-800 flex items-center justify-between">
@@ -44,7 +44,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         </div>
         <button
           onClick={() => setSidebarOpen(false)}
-          className="md:hidden p-1 text-slate-400 hover:text-white"
+          className="p-1 text-slate-400 hover:text-white"
         >
           <X size={20} />
         </button>
