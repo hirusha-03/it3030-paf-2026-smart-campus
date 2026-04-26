@@ -8,6 +8,7 @@ const AssignModal = ({ isOpen, onClose, onAssign, ticketId, userRole }) => {
   const [technicians, setTechnicians] = useState([]);
   const [assignedToId, setAssignedToId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -36,7 +37,11 @@ const AssignModal = ({ isOpen, onClose, onAssign, ticketId, userRole }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!assignedToId) return;
+    if (!assignedToId) {
+      setErrorMsg('Please select a technician before assigning.');
+      return;
+    }
+    setErrorMsg('');
     onAssign(ticketId, parseInt(assignedToId));
     setAssignedToId('');
     onClose();
@@ -69,7 +74,10 @@ const AssignModal = ({ isOpen, onClose, onAssign, ticketId, userRole }) => {
             ) : (
               <select
                 value={assignedToId}
-                onChange={(e) => setAssignedToId(e.target.value)}
+                onChange={(e) => {
+                  setAssignedToId(e.target.value);
+                  if (e.target.value) setErrorMsg('');
+                }}
                 required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
@@ -79,6 +87,7 @@ const AssignModal = ({ isOpen, onClose, onAssign, ticketId, userRole }) => {
                 ))}
               </select>
             )}
+            {errorMsg && <p className="mt-2 text-xs text-red-600">{errorMsg}</p>}
           </div>
           <div className="flex justify-end gap-3">
             <button type="button" onClick={onClose}

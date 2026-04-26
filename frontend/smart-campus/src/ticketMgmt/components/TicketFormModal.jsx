@@ -20,6 +20,8 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
   const [resourcesLoading, setResourcesLoading] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     if (isOpen) {
@@ -52,9 +54,43 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const validateField = (name, value, nextForm = formData) => {
+    if ((name === 'title' || name === 'description' || name === 'contactDetails') && !value.trim()) {
+      return 'This field is required.';
+    }
+    if (name === 'contactDetails') {
+      const method = nextForm.contactMethod;
+      const trimmed = value.trim();
+      if (method === 'EMAIL') {
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+        if (!emailOk) return 'Enter a valid email address.';
+      }
+      if (method === 'PHONE') {
+        const digits = trimmed.replace(/\D/g, '');
+        if (digits.length !== 10) return 'Enter a 10-digit phone number.';
+      }
+    }
+    return '';
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (name === 'contactMethod' && touched.contactDetails) {
+        setErrors((errs) => ({ ...errs, contactDetails: validateField('contactDetails', next.contactDetails, next) }));
+      }
+      return next;
+    });
+    if (touched[name]) {
+      setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
   };
 
   const handleFileChange = (e) => {
@@ -104,12 +140,22 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const nextErrors = {
+      title: validateField('title', formData.title),
+      description: validateField('description', formData.description),
+      contactDetails: validateField('contactDetails', formData.contactDetails, formData),
+    };
+    setTouched({ title: true, description: true, contactDetails: true });
+    setErrors(nextErrors);
+    if (Object.values(nextErrors).some(Boolean) || errorMsg) return;
     onSubmit(formData);
     setFormData({
       title: '', description: '', priority: 'LOW', category: '',
       contactMethod: 'EMAIL', contactDetails: '', attachments: [],
       relatedBookingId: '', relatedResourceId: ''
     });
+    setErrors({});
+    setTouched({});
     onClose();
   };
 
@@ -135,15 +181,21 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
             <input type="text" name="title" value={formData.title}
-              onChange={handleChange} required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+              onChange={handleChange} onBlur={handleBlur} required
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${errors.title ? 'border-red-400' : 'border-slate-300'}`} />
+            {errors.title && (
+              <p className="mt-1 text-xs text-red-600">{errors.title}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
             <textarea name="description" value={formData.description}
-              onChange={handleChange} required rows={4}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+              onChange={handleChange} onBlur={handleBlur} required rows={4}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${errors.description ? 'border-red-400' : 'border-slate-300'}`} />
+            {errors.description && (
+              <p className="mt-1 text-xs text-red-600">{errors.description}</p>
+            )}
           </div>
 
           <div>
@@ -177,12 +229,15 @@ const TicketFormModal = ({ isOpen, onClose, onSubmit, userId }) => {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Contact Details</label>
             <input type="text" name="contactDetails" value={formData.contactDetails}
-              onChange={handleChange} required
+              onChange={handleChange} onBlur={handleBlur} required
               placeholder={
                 formData.contactMethod === 'PHONE' ? 'Phone number' :
                 formData.contactMethod === 'EMAIL' ? 'Email address' : 'Location/Details'
               }
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${errors.contactDetails ? 'border-red-400' : 'border-slate-300'}`} />
+            {errors.contactDetails && (
+              <p className="mt-1 text-xs text-red-600">{errors.contactDetails}</p>
+            )}
           </div>
 
           <div>
